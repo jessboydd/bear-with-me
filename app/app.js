@@ -64,7 +64,26 @@ const store = {
 /* ---------- My car's numbers (saved on this phone only) ---------- */
 const CAR_KEY = "bearCar";
 let car = (() => { try { return JSON.parse(store.get(CAR_KEY) || "{}") || {}; } catch { return {}; } })();
-const saveCar = () => store.set(CAR_KEY, JSON.stringify(car));
+let carDoc = null, carTimer = 0;
+function saveCar() {
+  store.set(CAR_KEY, JSON.stringify(car));
+  if (carDoc) { clearTimeout(carTimer); carTimer = setTimeout(() => carDoc.set({ ...car }).catch(() => {}), 600); }
+}
+// Inside Claude, browser storage may not last, so the numbers are also kept in
+// the viewer's own private Claude storage. Outside Claude this does nothing.
+async function connectCarStore() {
+  try {
+    const use = window.claude?.use;
+    if (!use) return;
+    const [db, user] = await Promise.all([use("db"), use("user")]);
+    const uid = db && user ? await user.id() : null;
+    if (!uid) return;
+    carDoc = db.doc("data/users/" + uid + "/car");
+    const snap = await carDoc.get();
+    if (snap.exists) { car = { ...snap.data() }; store.set(CAR_KEY, JSON.stringify(car)); if (st.screen !== "car") render(); }
+    else if (Object.keys(car).length) carDoc.set({ ...car }).catch(() => {});
+  } catch { carDoc = null; }
+}
 const telHref = n => "tel:" + String(n).replace(/[^0-9+]/g, "");
 function carSummary() {
   const bits = [];
@@ -87,7 +106,7 @@ function home() {
   return `
   ${demoNote()}
   <div class="top" style="justify-content:space-between">
-    <div class="brand">${KIT_BEAR}<span>Bear With Me</span></div>
+    <div class="brand">${GUIDE_BEAR}<span>Bear With Me</span></div>
     <div class="checker" aria-hidden="true">${Array.from({ length: 12 }, (_, i) => `<i class="${(i + Math.floor(i / 6)) % 2 ? "" : "k"}"></i>`).join("")}</div>
   </div>
   <h1>Something going on with your car?</h1>
@@ -98,6 +117,7 @@ function home() {
     <button class="btn" id="up">${I.img}Upload</button>
   </div>
   <p class="hint" style="margin-top:-6px">Only when you're parked. Never while driving.</p>
+  ${car.roadside ? `<a class="btn call" href="${telHref(car.roadside)}">${I.phone}Call roadside help</a>` : ""}
   <form class="describe" id="descForm">
     <label class="sr" for="desc">Describe what's happening</label>
     <input id="desc" type="text" placeholder="Tell me what's happening" autocomplete="off">
@@ -113,7 +133,6 @@ function home() {
     <span class="cartext"><b>My car's numbers</b><span class="small muted">${esc(carSummary() || "Tire pressure, oil type, roadside help. Fill it in while things are calm.")}</span></span>
     <span style="width:22px;height:22px;transform:rotate(-90deg)">${I.chev}</span>
   </button>
-  ${car.roadside ? `<a class="btn" href="${telHref(car.roadside)}">${I.phone}Call roadside help</a>` : ""}
   <details class="lightsbox">
     <summary><span>Look up a dashboard light</span><span style="width:22px;height:22px">${I.chev}</span></summary>
     ${["stop","soon","info"].map(lv => `
@@ -393,3 +412,4 @@ function demoReply(content, hasPhoto) {
 
 /* ---------- Boot ---------- */
 render();
+connectCarStore();
