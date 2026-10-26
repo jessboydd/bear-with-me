@@ -49,7 +49,7 @@ details.lightsbox[open] summary span:last-child{transform:rotate(180deg)}
 .lights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:16px}
 .light{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;cursor:pointer;text-align:left}
 .light:hover{border-color:var(--ink)}
-.light .sym{width:36px;height:36px}
+.light .sym{width:44px;height:44px;border-radius:12px;background:var(--ink);display:flex;align-items:center;justify-content:center}.light .sym svg{width:30px;height:30px}.lvl{padding:4px 0 2px}
 .light b{font-size:14px;line-height:18px}
 .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px 4px 6px;font:800 12px/16px var(--display);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .chip svg{width:16px;height:16px}
@@ -95,6 +95,25 @@ details.lightsbox[open] summary span:last-child{transform:rotate(180deg)}
 .codebox form{display:flex;gap:8px}
 .codebox input{flex:1;min-width:0;height:48px;border-radius:999px;border:2px solid var(--ink);padding:0 16px;background:var(--white)}
 body{margin:0}
+.carcard{display:flex;align-items:center;gap:12px;background:var(--white);border:2px solid var(--line);border-radius:20px;padding:12px 14px;text-align:left;cursor:pointer;width:100%}
+.carcard:hover{border-color:var(--ink)}
+.carico{width:44px;height:44px;border-radius:12px;background:var(--lavender);display:flex;align-items:center;justify-content:center;flex:none}
+.carico svg{width:26px;height:26px}
+.cartext{display:flex;flex-direction:column;flex:1;min-width:0}
+.cartext b{font:800 17px/1.2 var(--display);text-transform:uppercase}
+a.btn{text-decoration:none;color:var(--ink)}
+.callbtn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;background:var(--white);color:var(--stop);font:800 17px/1 var(--display);text-transform:uppercase;text-decoration:none}
+.callbtn svg{width:22px;height:22px}
+.carsec{background:var(--white);border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.field{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.field span{font-size:15px;white-space:nowrap}
+.field input{flex:1;min-width:0;height:44px;border-radius:12px;border:2px solid var(--line);padding:0 12px;background:var(--surface)}
+.field input:focus{border-color:var(--ink)}
+.field em{font-style:normal;font-weight:700;font-size:14px}
+.pair{display:flex;gap:10px}
+.pickrow{display:flex;flex-direction:column;gap:6px}
+.pickrow>span{font-size:15px}
+.topics button.on{background:var(--ink);color:var(--surface)}
 </style>
 </head>
 <body>

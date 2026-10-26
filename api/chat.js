@@ -15,9 +15,24 @@ const MAX_TEXT = 2000;
 const MAX_IMAGE_B64 = 3_000_000; // about 2.2 MB of JPEG; the app sends far less
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
-export function rules(light) {
+// The driver's own saved numbers (from their door sticker and manual). Phone
+// numbers and insurance are never sent here; they stay on the phone.
+export function carNote(car) {
+  if (!car || typeof car !== "object") return "";
+  const clean = k => String(car[k] ?? "").replace(/[\r\n]/g, " ").slice(0, 60).trim();
+  const lines = [];
+  if (clean("model")) lines.push(`Car: ${clean("model")}`);
+  if (clean("front") || clean("rear")) lines.push(`Tire pressure from their door sticker: front ${clean("front") || "not saved"} PSI, rear ${clean("rear") || "not saved"} PSI`);
+  if (clean("spare")) lines.push(`Spare tire pressure: ${clean("spare")} PSI`);
+  if (clean("spareKit")) lines.push(`Car has: ${clean("spareKit")} (a spare / inflator kit / neither)`);
+  if (clean("oilType")) lines.push(`Oil type from their manual: ${clean("oilType")}`);
+  if (clean("oilCheck")) lines.push(`Their manual says check oil: ${clean("oilCheck")}`);
+  return lines.length ? `\nThe driver saved these numbers for their own car in the app. Use them when they help, and treat them as theirs (don't second-guess them):\n- ${lines.join("\n- ")}\n` : "";
+}
+
+export function rules(light, car) {
   return `You are "the bear", the friendly guide inside Bear With Me: The Ready Kit, a car-preparedness kit for beginners (mostly women 18-40 who are new to car care). You help with ANY car problem: warning lights, tires, leaks, noises, smells, smoke, dents and damage, fluids, batteries, brakes, things that won't start or won't work. The driver may send photos and will describe what's happening. Your job: understand the problem, judge how urgent it is, explain it in plain words, and give a safe next step.
-${light ? `\nThe driver picked this dashboard light from a verified list: ${light.name}. Verified facts (trust these over your own knowledge): ${light.facts}\n` : ""}
+${carNote(car)}${light ? `\nThe driver picked this dashboard light from a verified list: ${light.name}. Verified facts (trust these over your own knowledge): ${light.facts}\n` : ""}
 Their kit has: a tire pressure gauge, a small flashlight, a pen, a document sleeve with registration and insurance, and an illustrated pocket booklet. Page 3 of the booklet has their own car's numbers: tire pressure, oil type, roadside help phone number and insurance.
 
 How to help:
@@ -99,7 +114,7 @@ export default async function handler(req, res) {
         "x-api-key": process.env.ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01"
       },
-      body: JSON.stringify({ model: MODEL, max_tokens: 700, system: rules(light), messages })
+      body: JSON.stringify({ model: MODEL, max_tokens: 700, system: rules(light, body?.car), messages })
     });
     if (!r.ok) {
       console.error("Anthropic API error", r.status, await r.text());

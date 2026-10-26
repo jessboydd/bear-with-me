@@ -10,7 +10,8 @@ Ask the Bear, the AI helper for *Bear With Me: The Ready Kit*, plus the stable l
 ## What's here
 
 - `app/index.html`, `app/app.js`: the app. Snap or upload a photo (shrunk on the phone before sending), chat, urgency chips (Stop soon / Check soon / FYI), a written-in stop banner, and a dashboard-light lookup that works without AI.
-- `app/lights.js`: dashboard-light facts the bear treats as verified. Review before testing.
+- `app/lights.js`: the 14 dashboard lights from the booklet (pp. 5–11), with the facts the bear treats as verified. Review against an owner's manual before testing.
+- **My car's numbers**: the booklet's page 3 in the app (tire pressure, spare or inflator kit, oil type, roadside help, insurance). Saved on the phone only. The bear is told the car, tire and oil numbers; phone numbers and insurance never leave the phone. A saved roadside number adds a Call button to the home screen and the stop banner.
 - `api/chat.js`: the private server piece. Keeps the API key secret, writes the bear's rules itself, checks the tester code, limits message and photo size, and sends photos to Anthropic's API.
 - `qr/`: the booklet QR code (SVG and PNG).
 
