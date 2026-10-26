@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F8F4FC">
+<title>Ask the Bear · Bear With Me</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one phone-width column; start screen is loud, the chat is calm */
+:root{
+  --lavender:#B997F8; --orange:#FF7044; --ink:#231930; --muted:#665D70;
+  --surface:#F8F4FC; --tint:#F0EAF8; --line:#E8E2F0; --white:#FFFFFF;
+  --link:#6B44C2; --stop:#C42B3C; --soon:#F2B705; --info:#2E7D4F;
+  --display:"Roboto Condensed","Arial Narrow",sans-serif;
+  --body:Figtree,Aptos,system-ui,sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{background:var(--surface);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+.app{max-width:440px;margin:0 auto;min-height:100%;padding-inline:16px;padding-block:16px 0;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;align-items:center;gap:12px;min-height:48px}
+.brand{display:flex;align-items:center;gap:10px;font:800 20px/1 var(--display);text-transform:uppercase}
+.brand svg{width:36px;height:36px;flex:none}
+.round{width:48px;height:48px;border-radius:999px;border:2px solid var(--ink);background:var(--white);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0}
+.round svg{width:22px;height:22px}
+h1{margin:0;font:800 40px/1 var(--display);text-transform:uppercase;letter-spacing:-.01em;text-wrap:balance}
+.label{font:700 13px/16px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:14px;line-height:20px}
+.btn{min-height:56px;border-radius:16px;border:2px solid var(--ink);background:var(--white);display:flex;align-items:center;justify-content:center;gap:10px;font:800 18px/1.1 var(--display);text-transform:uppercase;letter-spacing:.04em;cursor:pointer;padding:10px 16px;width:100%;text-align:center}
+.btn.lav{background:var(--lavender)}
+.btn svg{width:22px;height:22px;flex:none}
+.btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+:focus-visible{outline:3px solid var(--link);outline-offset:2px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:12px}
+.topics{display:flex;flex-wrap:wrap;gap:8px}
+.topics button,.quick button{min-height:44px;border-radius:999px;border:2px solid var(--ink);background:var(--white);padding:0 14px;font-weight:600;font-size:15px;cursor:pointer}
+.topics button:hover,.quick button:hover{background:var(--tint)}
+details.lightsbox{background:var(--white);border-radius:20px;padding:4px 16px}
+details.lightsbox summary{min-height:52px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-weight:700;list-style:none}
+details.lightsbox summary::-webkit-details-marker{display:none}
+details.lightsbox[open] summary span:last-child{transform:rotate(180deg)}
+.lights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:16px}
+.light{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;cursor:pointer;text-align:left}
+.light:hover{border-color:var(--ink)}
+.light .sym{width:36px;height:36px}
+.light b{font-size:14px;line-height:18px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px 4px 6px;font:800 12px/16px var(--display);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.chip svg{width:16px;height:16px}
+.chip.stop{background:var(--stop);color:var(--white)}
+.chip.soon{background:var(--soon);color:var(--ink)}
+.chip.info{background:var(--info);color:var(--white)}
+.chip.unsure{background:var(--tint);color:var(--ink)}
+.describe{display:flex;gap:8px}
+.describe input,.composer input[type=text]{flex:1;min-width:0;height:52px;border-radius:999px;border:2px solid var(--ink);padding:0 16px;background:var(--white)}
+.head{position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);z-index:2;padding-block:8px;display:flex;flex-direction:column;gap:10px;margin-top:-8px}
+.headrow{display:flex;align-items:center;gap:12px}
+.headrow .t{min-width:0;flex:1}
+.headrow .t b{display:block;font:800 20px/1.1 var(--display);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.banner{background:var(--stop);color:var(--white);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.banner .bt{display:flex;align-items:center;gap:10px;font:800 22px/1.1 var(--display);text-transform:uppercase}
+.banner .bt svg{width:30px;height:30px;flex:none}
+.banner ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px;font-size:16px;line-height:22px}
+.banner p{font-size:14px;line-height:20px}
+.chat{display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:12px 14px;font-size:16px;line-height:23px;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.bot{align-self:flex-start;background:var(--white);border-radius:20px 20px 20px 6px}
+.msg.me{align-self:flex-end;background:var(--ink);color:var(--surface);border-radius:20px 20px 6px 20px}
+.msg.me img{display:block;width:100%;max-width:220px;border-radius:12px;margin-bottom:8px}
+.msg.think{color:var(--muted);font-style:italic}
+.quick{display:flex;flex-wrap:wrap;gap:8px}
+.composer{position:sticky;bottom:0;background:var(--surface);padding-block:10px calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;margin-top:auto}
+.composer form{display:flex;gap:8px;align-items:center}
+.composer input[type=text]{height:48px}
+.send{background:var(--orange)}
+.pending{display:flex;align-items:center;gap:8px;font-size:14px}
+.pending img{width:44px;height:44px;object-fit:cover;border-radius:10px}
+.pending button{border:none;background:none;color:var(--link);font-weight:700;cursor:pointer;min-height:44px;padding:0 8px}
+.checker{display:grid;grid-template-columns:repeat(6,10px);grid-template-rows:repeat(2,10px)}
+.checker i.k{background:var(--ink)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.hint{font-size:13px;line-height:18px;color:var(--muted);text-align:center}
+.err{color:var(--stop);font-weight:600;font-size:15px}
+.note{background:var(--tint);border-radius:16px;padding:12px 14px;font-size:15px;line-height:22px}
+.spacer{height:8px}
+.demo{background:var(--ink);color:var(--surface);border-radius:14px;padding:8px 12px;font-size:13px;line-height:18px;display:flex;gap:8px;align-items:center}
+.demo b{font:800 12px/16px var(--display);letter-spacing:.08em;text-transform:uppercase;background:var(--orange);color:var(--ink);border-radius:999px;padding:2px 8px;flex:none}
+.codebox{background:var(--white);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.codebox form{display:flex;gap:8px}
+.codebox input{flex:1;min-width:0;height:48px;border-radius:999px;border:2px solid var(--ink);padding:0 16px;background:var(--white)}
+body{margin:0}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<input type="file" id="photo" accept="image/*" capture="environment" hidden>
+<input type="file" id="upload" accept="image/*" hidden>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
