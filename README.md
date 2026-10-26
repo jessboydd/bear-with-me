@@ -14,6 +14,7 @@ Ask the Bear, the AI helper for *Bear With Me: The Ready Kit*, plus the stable l
 - **My car's numbers**: the booklet's page 3 in the app (tire pressure, spare or inflator kit, oil type, roadside help, insurance). Saved on the phone only. The bear is told the car, tire and oil numbers; phone numbers and insurance never leave the phone. A saved roadside number adds a Call button to the home screen and the stop banner.
 - `api/chat.js`: the private server piece. Keeps the API key secret, writes the bear's rules itself, checks the tester code, limits message and photo size, and sends photos to Anthropic's API.
 - `qr/`: the booklet QR code (SVG and PNG).
+- `tools/build-claude-version.py`: builds the Claude version of Ask the Bear (the artifact) from this same code, using Claude's AI in place of `api/chat.js`. Rebuild and republish it after app changes so the two stay the same.
 
 ## Demo mode vs. live
 
