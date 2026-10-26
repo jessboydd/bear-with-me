@@ -1,0 +1,7 @@
+{
+  "name": "bear-with-me",
+  "private": true,
+  "type": "module",
+  "description": "Ask the Bear: the AI helper for Bear With Me: The Ready Kit",
+  "engines": { "node": ">=18" }
+}
