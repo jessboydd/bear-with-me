@@ -292,7 +292,15 @@ function render() {
   const cf = document.getElementById("chatForm");
   if (cf) cf.onsubmit = e => { e.preventDefault(); const i = document.getElementById("msg"); const t = i.value.trim(); if (t || st.pending) { i.value = ""; send(t); } };
   const kf = document.getElementById("codeForm");
-  if (kf) kf.onsubmit = e => { e.preventDefault(); const c = document.getElementById("code").value.trim(); if (c) { store.set("bearCode", c); st.needCode = false; st.error = ""; resend(); } };
+  if (kf) kf.onsubmit = async e => {
+    e.preventDefault();
+    const c = document.getElementById("code").value.trim();
+    if (!c) return;
+    // Check it now, so a typo shows up here and not after the first message.
+    if (await checkCode(c) === false) { st.error = "That tester code didn't work. Check it and try again."; render(); document.getElementById("code")?.focus(); return; }
+    store.set("bearCode", c); st.needCode = false; st.error = "";
+    resend();
+  };
   if (st.screen === "chat") window.scrollTo(0, document.body.scrollHeight);
 }
 
@@ -397,6 +405,14 @@ function resend() {
   else start(r.text, r.pic);
 }
 
+// Asks the server whether a code works: true, false, or null when it can't tell (no signal).
+async function checkCode(c) {
+  try {
+    const r = await fetch(API, { headers: { "x-bear-code": c } });
+    return r.ok ? (await r.json()).codeOk === true : null;
+  } catch { return null; }
+}
+
 async function liveReply(bot, pic) {
   // The newest photo goes with every message so the bear can keep looking at it;
   // the server pins it to the message it was sent with. Older photos are covered
@@ -460,3 +476,5 @@ function demoReply(content, hasPhoto) {
 /* ---------- Boot ---------- */
 render();
 connectCarStore();
+// Show the tester code box right away when this phone doesn't have a working code yet.
+if (!DEMO) checkCode(store.get("bearCode")).then(ok => { if (ok === false && !st.needCode) { st.needCode = true; if (st.screen === "home") render(); } });
