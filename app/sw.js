@@ -1,7 +1,7 @@
 // Keeps Ask the Bear opening with no signal: the light lookup, the stop
 // banner and My car's numbers all work offline. Only the chat needs a signal.
 // Bump VERSION whenever app files change so phones pick up the new copy.
-const VERSION = "bear-v2";
+const VERSION = "bear-v3";
 const SHELL = ["./", "./index.html", "./app.js", "./lights.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 const FONTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//;
