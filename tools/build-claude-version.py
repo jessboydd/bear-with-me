@@ -37,7 +37,6 @@ app = sub("/* ---------- Demo answers (no AI) ---------- */", fn + "\n/* -------
 a = app.index("async function liveReply")
 b = app.rindex("}", 0, app.index("// The driver's own saved numbers")) + 1
 app = app[:a] + r'''async function sampleReply(bot, pic) {
-  // Only the newest photo goes to the AI; earlier photos are covered by the bear's own descriptions.
   const history = st.turns.filter(t => t !== bot).slice(-14).map(t => ({ role: t.role, content: t.content }));
   const input = [{ role: "user", content: rules(st.light, carForBear()) }];
   if (history[0]?.role === "assistant") input.push({ role: "user", content: "(I opened the chat.)" });
@@ -49,7 +48,9 @@ app = app[:a] + r'''async function sampleReply(bot, pic) {
     const el = document.getElementById("chatlog")?.lastElementChild;
     if (el) { el.textContent = v; el.classList.remove("think"); window.scrollTo(0, document.body.scrollHeight); }
   } };
-  if (pic) opts.images = [pic.file];
+  // Like the standalone app, the newest photo goes with every message so the bear keeps seeing it.
+  const photo = pic || st.photo;
+  if (photo) opts.images = [photo.file];
   const { text: full } = await sample(input, opts);
   return parse(full);
 }
@@ -82,7 +83,10 @@ render();
 assert "liveReply" not in app and "export " not in app and "import " not in app
 
 css = html.split("<style>")[1].split("</style>")[0]
-page = f'''<title>Ask the Bear</title>
+page = f'''<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the Bear</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700;800&family=Figtree:wght@400;500;600;700&display=swap">
 <style>{css}</style>
