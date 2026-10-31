@@ -41,6 +41,7 @@ const I = {
   cam: S('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', 2.2),
   img: S('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>', 2),
   send: S('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.4),
+  add: S('<path d="M12 5v14M5 12h14"/>', 2.4),
   chev: S('<path d="M6 9l6 6 6-6"/>', 2.2),
   car: S('<path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/>', 2),
   phone: S('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>', 2)
@@ -101,6 +102,25 @@ function carForBear() {
 
 const demoNote = () => DEMO ? `<div class="demo"><b>Demo</b><span>Sample answers only. The real AI isn't connected yet.</span></div>` : "";
 
+/* ---------- Add to home screen ----------
+   Only in the installable app (index.html sets window.BEAR_PWA), never inside Claude. */
+let installEvt = null;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const installed = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; if (st.screen === "home") render(); });
+window.addEventListener("appinstalled", () => { installEvt = null; render(); });
+function installCard() {
+  if (!window.BEAR_PWA || installed() || store.get("bearInstallHide")) return "";
+  const how = installEvt ? `<button class="btn lav" id="install">${I.add}Add to home screen</button>`
+    : isIOS ? `<p class="small">Tap <b>Share</b> at the bottom of Safari, then <b>Add to Home Screen</b>.</p>` : "";
+  if (!how) return "";
+  return `<div class="codebox">
+    <p class="small"><b>Keep the bear on your phone.</b> Add it to your home screen so it's one tap away, even with no signal.</p>
+    ${how}
+    <button class="linkbtn" id="installHide">Not now</button>
+  </div>`;
+}
+
 /* ---------- Screens ---------- */
 function home() {
   return `
@@ -133,6 +153,7 @@ function home() {
     <span class="cartext"><b>My car's numbers</b><span class="small muted">${esc(carSummary() || "Tire pressure, oil type, roadside help. Fill it in while things are calm.")}</span></span>
     <span style="width:22px;height:22px;transform:rotate(-90deg)">${I.chev}</span>
   </button>
+  ${installCard()}
   <details class="lightsbox">
     <summary><span>Look up a dashboard light</span><span style="width:22px;height:22px">${I.chev}</span></summary>
     ${["stop","soon","info"].map(lv => `
@@ -247,6 +268,8 @@ function render() {
   on("up", pick("new", "upload"));
   on("addPhoto", pick("chat", "photo"));
   on("unpend", () => { st.pending = null; render(); });
+  on("install", async () => { const e = installEvt; installEvt = null; await e?.prompt(); render(); });
+  on("installHide", () => { store.set("bearInstallHide", "1"); render(); });
   on("openCar", () => { st.screen = "car"; render(); window.scrollTo(0, 0); });
   app.querySelectorAll("[data-car]").forEach(inp => inp.oninput = () => {
     car[inp.dataset.car] = inp.value.trim(); saveCar();
@@ -346,6 +369,7 @@ async function send(text) {
     if (e.status === 401) { st.needCode = true; st.screen = "home"; st.error = store.get("bearCode") ? "That tester code didn't work. Check it and try again." : ""; }
     else st.error = e.status === 429 ? "Too many messages in a row. Wait a minute and try again."
       : e.status === 413 ? "That photo is too big to send. Try a different one."
+      : !navigator.onLine ? "No signal right now. The light lookup and your car's numbers still work."
       : "That didn't go through. Check your signal and try again.";
     if (!st.turns.length) st.screen = "home";
   } finally {
