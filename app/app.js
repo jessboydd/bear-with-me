@@ -54,7 +54,7 @@ const KIT_BEAR = `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="32" 
 const GUIDE_BEAR = `<svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="58" cy="62" r="32" fill="#231930"/><circle cx="182" cy="62" r="32" fill="#231930"/><ellipse cx="120" cy="126" rx="94" ry="80" fill="#231930"/><circle cx="84" cy="116" r="10" fill="#F8F4FC"/><circle cx="156" cy="116" r="10" fill="#F8F4FC"/><ellipse cx="120" cy="158" rx="46" ry="34" fill="#F8F4FC"/><path d="M104 142q16-10 32 0q-3 14-16 16q-13-2-16-16z" fill="#231930"/><path d="M120 158v8M108 170q12 9 24 0" fill="none" stroke="#231930" stroke-width="4.5" stroke-linecap="round"/></svg>`;
 
 /* ---------- State ---------- */
-const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, needCode: false };
+const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null, needCode: false };
 const app = document.getElementById("app");
 const byId = id => LIGHTS.find(l => l.id === id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -322,7 +322,7 @@ async function shrink(file) {
 }
 
 /* ---------- Conversation ---------- */
-function reset() { Object.assign(st, { screen: "chat", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null }); }
+function reset() { Object.assign(st, { screen: "chat", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null }); }
 
 function start(text, pic) {
   reset();
@@ -365,6 +365,7 @@ async function send(text) {
   try {
     const res = DEMO ? await demoReply(content, !!pic) : await liveReply(bot, pic);
     bot.content = bot.display = res.text; bot.think = false;
+    if (pic) st.photo = pic;
     applyMeta(res);
   } catch (e) {
     st.turns.pop(); st.turns.pop();
@@ -381,12 +382,15 @@ async function send(text) {
 }
 
 async function liveReply(bot, pic) {
-  // Only the newest photo goes to the AI; earlier photos are covered by the bear's own descriptions.
+  // The newest photo goes with every message so the bear can keep looking at it;
+  // the server pins it to the message it was sent with. Older photos are covered
+  // by the bear's own descriptions.
+  const photo = pic || st.photo;
   const history = st.turns.filter(t => t !== bot).slice(-14).map(t => ({ role: t.role, content: t.content }));
   const r = await fetch(API, {
     method: "POST",
     headers: { "content-type": "application/json", "x-bear-code": store.get("bearCode") },
-    body: JSON.stringify({ messages: history, lightId: st.light?.id || null, car: carForBear(), image: pic ? { media_type: pic.media_type, data: pic.data } : null })
+    body: JSON.stringify({ messages: history, lightId: st.light?.id || null, car: carForBear(), image: photo ? { media_type: photo.media_type, data: photo.data } : null })
   });
   if (!r.ok) { const err = new Error("http"); err.status = r.status; throw err; }
   return r.json();
