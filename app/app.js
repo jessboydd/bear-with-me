@@ -54,7 +54,7 @@ const KIT_BEAR = `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="32" 
 const GUIDE_BEAR = `<svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="58" cy="62" r="32" fill="#231930"/><circle cx="182" cy="62" r="32" fill="#231930"/><ellipse cx="120" cy="126" rx="94" ry="80" fill="#231930"/><circle cx="84" cy="116" r="10" fill="#F8F4FC"/><circle cx="156" cy="116" r="10" fill="#F8F4FC"/><ellipse cx="120" cy="158" rx="46" ry="34" fill="#F8F4FC"/><path d="M104 142q16-10 32 0q-3 14-16 16q-13-2-16-16z" fill="#231930"/><path d="M120 158v8M108 170q12 9 24 0" fill="none" stroke="#231930" stroke-width="4.5" stroke-linecap="round"/></svg>`;
 
 /* ---------- State ---------- */
-const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null, needCode: false };
+const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null, needCode: false, retry: null };
 const app = document.getElementById("app");
 const byId = id => LIGHTS.find(l => l.id === id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -170,7 +170,7 @@ function home() {
 
 function codeBox() {
   return `<div class="codebox">
-    <p class="small"><b>Tester code needed.</b> Enter the code from your session to talk to the bear.</p>
+    <p class="small"><b>Tester code needed.</b> Enter the code from your session to talk to the bear.${st.retry ? " Your message will send right after." : ""}</p>
     <form id="codeForm"><label class="sr" for="code">Tester code</label><input id="code" type="text" autocomplete="off" autocapitalize="none" placeholder="Tester code"><button class="round send" aria-label="Save code">${I.send}</button></form>
   </div>`;
 }
@@ -292,7 +292,7 @@ function render() {
   const cf = document.getElementById("chatForm");
   if (cf) cf.onsubmit = e => { e.preventDefault(); const i = document.getElementById("msg"); const t = i.value.trim(); if (t || st.pending) { i.value = ""; send(t); } };
   const kf = document.getElementById("codeForm");
-  if (kf) kf.onsubmit = e => { e.preventDefault(); const c = document.getElementById("code").value.trim(); if (c) { store.set("bearCode", c); st.needCode = false; st.error = ""; render(); } };
+  if (kf) kf.onsubmit = e => { e.preventDefault(); const c = document.getElementById("code").value.trim(); if (c) { store.set("bearCode", c); st.needCode = false; st.error = ""; resend(); } };
   if (st.screen === "chat") window.scrollTo(0, document.body.scrollHeight);
 }
 
@@ -370,7 +370,11 @@ async function send(text) {
   } catch (e) {
     st.turns.pop(); st.turns.pop();
     if (pic) st.pending = pic;
-    if (e.status === 401) { st.needCode = true; st.screen = "home"; st.error = store.get("bearCode") ? "That tester code didn't work. Check it and try again." : ""; }
+    if (e.status === 401) {
+      // Keep what they asked, show the code box where they can see it, and send it once the code is in.
+      st.retry = { text, pic, light: st.light }; st.pending = null;
+      st.needCode = true; st.screen = "home"; st.error = store.get("bearCode") ? "That tester code didn't work. Check it and try again." : "";
+    }
     else st.error = e.status === 429 ? "Too many messages in a row. Wait a minute and try again."
       : e.status === 413 ? "That photo is too big to send. Try a different one."
       : !navigator.onLine ? "No signal right now. The light lookup and your car's numbers still work."
@@ -378,7 +382,19 @@ async function send(text) {
     if (!st.turns.length) st.screen = "home";
   } finally {
     st.busy = false; render();
+    if (st.needCode && st.screen === "home") {
+      const box = document.getElementById("code");
+      box?.scrollIntoView({ block: "center" }); box?.focus();
+    }
   }
+}
+
+// After the tester code is entered, send the message that was waiting for it.
+function resend() {
+  const r = st.retry; st.retry = null;
+  if (!r) { render(); return; }
+  if (r.light) { startLight(r.light); st.pending = r.pic; send(r.text); }
+  else start(r.text, r.pic);
 }
 
 async function liveReply(bot, pic) {
