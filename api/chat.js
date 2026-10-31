@@ -14,6 +14,7 @@ const MAX_TURNS = 16;
 const MAX_TEXT = 2000;
 const MAX_IMAGE_B64 = 3_000_000; // about 2.2 MB of JPEG; the app sends far less
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const PHOTO_NOTE = "[I attached a photo of the problem.]"; // the app adds this to messages with a photo
 
 // The driver's own saved numbers (from their door sticker and manual). Phone
 // numbers and insurance are never sent here; they stay on the phone.
@@ -37,6 +38,7 @@ Their kit has: a tire pressure gauge, a small flashlight, a pen, a document slee
 
 How to help:
 - When they first send a photo, start by saying briefly what you can actually see, and ask if that's right. Never pretend to see details you can't. If the photo is unclear, say so and ask for another angle, more light, or a description.
+- Only the newest photo is shown to you, attached to the message it came with. If you described an earlier photo, trust your own description: never take it back or say you couldn't see it. If the driver asks whether you can see a photo, answer honestly from what is in front of you.
 - Work it out like a calm, knowledgeable friend: ask ONE clarifying question at a time (when it started, steady or flashing, color and smell of a leak, when the noise happens, how the car drives).
 - Talk about likely causes as possibilities ("this could be..."), never a certain diagnosis. You can't hear sounds or smell: ask them to describe.
 - Only suggest beginner-safe steps: looking, checking tire pressure, checking fluid levels with the engine off and cool, tightening a gas cap, reading the owner's manual. Anything involving brakes, steering, airbags, fuel leaks, electrical work, getting under the car, or lifting it goes to a mechanic or roadside help.
@@ -88,9 +90,13 @@ export function buildMessages(body) {
   if (image) {
     if (!IMAGE_TYPES.has(image.media_type) || typeof image.data !== "string") return "bad image";
     if (image.data.length > MAX_IMAGE_B64) return "image too large";
-    lastTurn.content = [
+    // The app re-sends the newest photo on every message; pin it to the message it
+    // came with, so the bear keeps seeing it without thinking it's new.
+    const withPhoto = merged.findLast(m => m.role === "user" && m.content.includes(PHOTO_NOTE));
+    if (!withPhoto) return merged;
+    withPhoto.content = [
       { type: "image", source: { type: "base64", media_type: image.media_type, data: image.data } },
-      { type: "text", text: lastTurn.content }
+      { type: "text", text: withPhoto.content }
     ];
   }
   return merged;
