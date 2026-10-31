@@ -4,7 +4,7 @@ Ask the Bear, the AI helper for *Bear With Me: The Ready Kit*, plus the stable l
 
 | Address | What it is |
 |---|---|
-| https://jessboydd.github.io/bear-with-me/ | The QR link. `index.html` forwards to the current Ask the Bear. Change the two links in it to point the booklet somewhere new; printed QR codes never change. |
+| https://jessboydd.github.io/bear-with-me/ | The QR link. `index.html` forwards to the live app at https://bear-with-me-xi.vercel.app/app/ (testers need the tester code). The Claude version is https://claude.ai/artifact/DZjETc7jFkLCRCRYVTdh5R. Change the two links in it to point the booklet somewhere new; printed QR codes never change. |
 | https://jessboydd.github.io/bear-with-me/app/ | The standalone app in **demo mode**: real camera, photo and chat screens, sample answers instead of AI. |
 
 ## What's here
@@ -28,7 +28,7 @@ The app runs in demo mode on GitHub Pages, when opened as a file, or with `?demo
    - `ANTHROPIC_API_KEY`: the key from step 1.
    - `BEAR_ACCESS_CODE`: a tester code you choose. Testers enter it once.
    - `BEAR_MODEL` (optional): defaults to `claude-sonnet-5-5`.
-4. Open `https://<your-vercel-address>/app/` and test it on a phone.
+4. Open `https://<your-vercel-address>/app/` on a phone, test it, and add it to the home screen.
 5. Point `index.html` at that address so the booklet QR opens the live app.
 
 Never put the API key in any file in this repo; the repo is public.

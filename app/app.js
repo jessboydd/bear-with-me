@@ -43,6 +43,7 @@ const I = {
   cam: S('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', 2.2),
   img: S('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>', 2),
   send: S('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.4),
+  add: S('<path d="M12 5v14M5 12h14"/>', 2.4),
   chev: S('<path d="M6 9l6 6 6-6"/>', 2.2),
   car: S('<path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/>', 2),
   phone: S('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>', 2)
@@ -53,7 +54,7 @@ const KIT_BEAR = `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="32" 
 const GUIDE_BEAR = `<svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="58" cy="62" r="32" fill="#231930"/><circle cx="182" cy="62" r="32" fill="#231930"/><ellipse cx="120" cy="126" rx="94" ry="80" fill="#231930"/><circle cx="84" cy="116" r="10" fill="#F8F4FC"/><circle cx="156" cy="116" r="10" fill="#F8F4FC"/><ellipse cx="120" cy="158" rx="46" ry="34" fill="#F8F4FC"/><path d="M104 142q16-10 32 0q-3 14-16 16q-13-2-16-16z" fill="#231930"/><path d="M120 158v8M108 170q12 9 24 0" fill="none" stroke="#231930" stroke-width="4.5" stroke-linecap="round"/></svg>`;
 
 /* ---------- State ---------- */
-const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, needCode: false };
+const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null, needCode: false, retry: null };
 const app = document.getElementById("app");
 const byId = id => LIGHTS.find(l => l.id === id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -103,6 +104,25 @@ function carForBear() {
 
 const demoNote = () => DEMO ? `<div class="demo"><b>Demo</b><span>Sample answers only. The real AI isn't connected yet.</span></div>` : "";
 
+/* ---------- Add to home screen ----------
+   Only in the installable app (index.html sets window.BEAR_PWA), never inside Claude. */
+let installEvt = null;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const installed = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; if (st.screen === "home") render(); });
+window.addEventListener("appinstalled", () => { installEvt = null; render(); });
+function installCard() {
+  if (!window.BEAR_PWA || installed() || store.get("bearInstallHide")) return "";
+  const how = installEvt ? `<button class="btn lav" id="install">${I.add}Add to home screen</button>`
+    : isIOS ? `<p class="small">Tap <b>Share</b> at the bottom of Safari, then <b>Add to Home Screen</b>.</p>` : "";
+  if (!how) return "";
+  return `<div class="codebox">
+    <p class="small"><b>Keep the bear on your phone.</b> Add it to your home screen so it's one tap away, even with no signal.</p>
+    ${how}
+    <button class="linkbtn" id="installHide">Not now</button>
+  </div>`;
+}
+
 /* ---------- Screens ---------- */
 function home() {
   return `
@@ -135,6 +155,7 @@ function home() {
     <span class="cartext"><b>My car's numbers</b><span class="small muted">${esc(carSummary() || "Tire pressure, oil type, roadside help. Fill it in while things are calm.")}</span></span>
     <span style="width:22px;height:22px;transform:rotate(-90deg)">${I.chev}</span>
   </button>
+  ${installCard()}
   <details class="lightsbox">
     <summary><span>Look up a dashboard light</span><span style="width:22px;height:22px">${I.chev}</span></summary>
     ${["stop","soon","info"].map(lv => `
@@ -149,7 +170,7 @@ function home() {
 
 function codeBox() {
   return `<div class="codebox">
-    <p class="small"><b>Tester code needed.</b> Enter the code from your session to talk to the bear.</p>
+    <p class="small"><b>Tester code needed.</b> Enter the code from your session to talk to the bear.${st.retry ? " Your message will send right after." : ""}</p>
     <form id="codeForm"><label class="sr" for="code">Tester code</label><input id="code" type="text" autocomplete="off" autocapitalize="none" placeholder="Tester code"><button class="round send" aria-label="Save code">${I.send}</button></form>
   </div>`;
 }
@@ -249,6 +270,8 @@ function render() {
   on("up", pick("new", "upload"));
   on("addPhoto", pick("chat", "photo"));
   on("unpend", () => { st.pending = null; render(); });
+  on("install", async () => { const e = installEvt; installEvt = null; await e?.prompt(); render(); });
+  on("installHide", () => { store.set("bearInstallHide", "1"); render(); });
   on("openCar", () => { st.screen = "car"; render(); window.scrollTo(0, 0); });
   app.querySelectorAll("[data-car]").forEach(inp => inp.oninput = () => {
     car[inp.dataset.car] = inp.value.trim(); saveCar();
@@ -269,7 +292,15 @@ function render() {
   const cf = document.getElementById("chatForm");
   if (cf) cf.onsubmit = e => { e.preventDefault(); const i = document.getElementById("msg"); const t = i.value.trim(); if (t || st.pending) { i.value = ""; send(t); } };
   const kf = document.getElementById("codeForm");
-  if (kf) kf.onsubmit = e => { e.preventDefault(); const c = document.getElementById("code").value.trim(); if (c) { store.set("bearCode", c); st.needCode = false; st.error = ""; render(); } };
+  if (kf) kf.onsubmit = async e => {
+    e.preventDefault();
+    const c = document.getElementById("code").value.trim();
+    if (!c) return;
+    // Check it now, so a typo shows up here and not after the first message.
+    if (await checkCode(c) === false) { st.error = "That tester code didn't work. Check it and try again."; render(); document.getElementById("code")?.focus(); return; }
+    store.set("bearCode", c); st.needCode = false; st.error = "";
+    resend();
+  };
   if (st.screen === "chat") window.scrollTo(0, document.body.scrollHeight);
 }
 
@@ -299,7 +330,7 @@ async function shrink(file) {
 }
 
 /* ---------- Conversation ---------- */
-function reset() { Object.assign(st, { screen: "chat", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null }); }
+function reset() { Object.assign(st, { screen: "chat", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null }); }
 
 function start(text, pic) {
   reset();
@@ -342,27 +373,56 @@ async function send(text) {
   try {
     const res = DEMO ? await demoReply(content, !!pic) : await liveReply(bot, pic);
     bot.content = bot.display = res.text; bot.think = false;
+    if (pic) st.photo = pic;
     applyMeta(res);
   } catch (e) {
     st.turns.pop(); st.turns.pop();
     if (pic) st.pending = pic;
-    if (e.status === 401) { st.needCode = true; st.screen = "home"; st.error = store.get("bearCode") ? "That tester code didn't work. Check it and try again." : ""; }
+    if (e.status === 401) {
+      // Keep what they asked, show the code box where they can see it, and send it once the code is in.
+      st.retry = { text, pic, light: st.light }; st.pending = null;
+      st.needCode = true; st.screen = "home"; st.error = store.get("bearCode") ? "That tester code didn't work. Check it and try again." : "";
+    }
     else st.error = e.status === 429 ? "Too many messages in a row. Wait a minute and try again."
       : e.status === 413 ? "That photo is too big to send. Try a different one."
+      : !navigator.onLine ? "No signal right now. The light lookup and your car's numbers still work."
       : "That didn't go through. Check your signal and try again.";
     if (!st.turns.length) st.screen = "home";
   } finally {
     st.busy = false; render();
+    if (st.needCode && st.screen === "home") {
+      const box = document.getElementById("code");
+      box?.scrollIntoView({ block: "center" }); box?.focus();
+    }
   }
 }
 
+// After the tester code is entered, send the message that was waiting for it.
+function resend() {
+  const r = st.retry; st.retry = null;
+  if (!r) { render(); return; }
+  if (r.light) { startLight(r.light); st.pending = r.pic; send(r.text); }
+  else start(r.text, r.pic);
+}
+
+// Asks the server whether a code works: true, false, or null when it can't tell (no signal).
+async function checkCode(c) {
+  try {
+    const r = await fetch(API, { headers: { "x-bear-code": c } });
+    return r.ok ? (await r.json()).codeOk === true : null;
+  } catch { return null; }
+}
+
 async function liveReply(bot, pic) {
-  // Only the newest photo goes to the AI; earlier photos are covered by the bear's own descriptions.
+  // The newest photo goes with every message so the bear can keep looking at it;
+  // the server pins it to the message it was sent with. Older photos are covered
+  // by the bear's own descriptions.
+  const photo = pic || st.photo;
   const history = st.turns.filter(t => t !== bot).slice(-14).map(t => ({ role: t.role, content: t.content }));
   const r = await fetch(API, {
     method: "POST",
     headers: { "content-type": "application/json", "x-bear-code": store.get("bearCode") },
-    body: JSON.stringify({ messages: history, lightId: st.light?.id || null, car: carForBear(), image: pic ? { media_type: pic.media_type, data: pic.data } : null })
+    body: JSON.stringify({ messages: history, lightId: st.light?.id || null, car: carForBear(), image: photo ? { media_type: photo.media_type, data: photo.data } : null })
   });
   if (!r.ok) { const err = new Error("http"); err.status = r.status; throw err; }
   return r.json();
@@ -416,3 +476,5 @@ function demoReply(content, hasPhoto) {
 /* ---------- Boot ---------- */
 render();
 connectCarStore();
+// Show the tester code box right away when this phone doesn't have a working code yet.
+if (!DEMO) checkCode(store.get("bearCode")).then(ok => { if (ok === false && !st.needCode) { st.needCode = true; if (st.screen === "home") render(); } });

@@ -3,5 +3,10 @@
   "private": true,
   "type": "module",
   "description": "Ask the Bear: the AI helper for Bear With Me: The Ready Kit",
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "node dev.js"
+  }
 }
