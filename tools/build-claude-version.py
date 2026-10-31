@@ -74,13 +74,15 @@ app = sub("const pick = (target, input) => () => { photoTarget = target;",
 app = sub('return { url, media_type: "image/jpeg", data };', 'return { url, media_type: "image/jpeg", data, file };', app)
 app = sub("<span>Sample answers only. The real AI isn't connected yet.</span>",
           "<span>Sample answers only. Claude's AI isn't available where this is open.</span>", app)
+a = app.index("// Show the tester code box right away"); b = app.index("\n", app.index("if (!DEMO) checkCode(", a)) + 1
+app = app[:a] + app[b:]
 app = sub("/* ---------- Boot ---------- */\nrender();", '''/* ---------- Boot ---------- */
 render();
 (async () => {
   try { sample = await window.claude?.use?.("sample") ?? null; } catch { sample = null; }
   DEMO = !sample; render();
 })();''', app)
-assert "liveReply" not in app and "export " not in app and "import " not in app
+assert "liveReply" not in app and "checkCode(store" not in app and "export " not in app and "import " not in app
 
 css = html.split("<style>")[1].split("</style>")[0]
 page = f'''<!DOCTYPE html>

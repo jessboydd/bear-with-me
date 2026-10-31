@@ -103,8 +103,10 @@ export function buildMessages(body) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const code = process.env.BEAR_ACCESS_CODE;
+  // The app asks on open whether a tester code is needed and whether its saved one works.
+  if (req.method === "GET") return res.status(200).json({ needsCode: !!code, codeOk: !code || req.headers["x-bear-code"] === code });
+  if (req.method !== "POST") return res.status(405).json({ error: "POST or GET only" });
   if (code && req.headers["x-bear-code"] !== code) return res.status(401).json({ error: "tester code" });
   if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: "server not set up" });
 
