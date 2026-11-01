@@ -4,7 +4,8 @@ Ask the Bear, the AI helper for *Bear With Me: The Ready Kit*, plus the stable l
 
 | Address | What it is |
 |---|---|
-| https://jessboydd.github.io/bear-with-me/ | The QR link. `index.html` forwards to the live app at https://bear-with-me-xi.vercel.app/app/ (testers need the tester code). The Claude version is https://claude.ai/artifact/DZjETc7jFkLCRCRYVTdh5R. Change the two links in it to point the booklet somewhere new; printed QR codes never change. |
+| https://jessboydd.github.io/bear-with-me/ | The original QR link (on the first printed proofs). `index.html` forwards to the live app at https://bear-with-me-xi.vercel.app/app/ (testers need the tester code). The Claude version is https://claude.ai/artifact/DZjETc7jFkLCRCRYVTdh5R. |
+| https://bear-with-me-xi.vercel.app/app/ | The live app. Since Nov 1, 2026 the booklet's QR code (p. 18 and back cover) opens this address directly: `qr/qr-live-app.svg` / `.png`. If this address ever changes, printed booklets need a new code, so keep the forwarder above working too. |
 | https://jessboydd.github.io/bear-with-me/app/ | The standalone app in **demo mode**: real camera, photo and chat screens, sample answers instead of AI. |
 
 ## What's here
