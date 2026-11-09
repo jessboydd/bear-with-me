@@ -5,11 +5,13 @@ import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import handler from "./api/chat.js";
+import chat from "./api/chat.js";
+import manual from "./api/manual.js";
+const API = { "/api/chat": chat, "/api/manual": manual };
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json",
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".json": "application/json",
   ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml" };
 
 // Just enough of Vercel's req/res helpers for api/chat.js.
@@ -21,9 +23,10 @@ function vercelRes(res) {
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
-  if (url.pathname === "/api/chat") {
+  const handler = API[url.pathname];
+  if (handler) {
     let raw = "";
-    for await (const chunk of req) { raw += chunk; if (raw.length > 5_000_000) return vercelRes(res).status(413).json({ error: "too large" }); }
+    for await (const chunk of req) { raw += chunk; if (raw.length > 4_500_000) return vercelRes(res).status(413).json({ error: "too large" }); }
     try { req.body = JSON.parse(raw || "{}"); } catch { return vercelRes(res).status(400).json({ error: "bad json" }); }
     return handler(req, vercelRes(res));
   }
