@@ -23,11 +23,16 @@ export function carNote(car) {
   const clean = k => String(car[k] ?? "").replace(/[\r\n]/g, " ").slice(0, 60).trim();
   const lines = [];
   if (clean("model")) lines.push(`Car: ${clean("model")}`);
-  if (clean("front") || clean("rear")) lines.push(`Tire pressure from their door sticker: front ${clean("front") || "not saved"} PSI, rear ${clean("rear") || "not saved"} PSI`);
+  if (clean("front") || clean("rear")) lines.push(`Tire pressure they saved (door sticker or owner's manual): front ${clean("front") || "not saved"} PSI, rear ${clean("rear") || "not saved"} PSI`);
   if (clean("spare")) lines.push(`Spare tire pressure: ${clean("spare")} PSI`);
   if (clean("spareKit")) lines.push(`Car has: ${clean("spareKit")} (a spare / inflator kit / neither)`);
   if (clean("oilType")) lines.push(`Oil type from their manual: ${clean("oilType")}`);
   if (clean("oilCheck")) lines.push(`Their manual says check oil: ${clean("oilCheck")}`);
+  const manual = Array.isArray(car.manual) ? car.manual.slice(0, 15).map(f => {
+    const c = v => String(v ?? "").replace(/[\r\n]/g, " ").trim();
+    return `${c(f?.label).slice(0, 40)}: ${c(f?.value).slice(0, 100)}${c(f?.note) ? ` (${c(f.note).slice(0, 80)})` : ""}${Number.isInteger(f?.page) ? ` [owner's manual p. ${f.page}]` : ""}`;
+  }).filter(l => !l.startsWith(":")) : [];
+  if (manual.length) lines.push(`From their owner's manual (they checked each one): ${manual.join("; ")}`);
   return lines.length ? `\nThe driver saved these numbers for their own car in the app. Use them when they help, and treat them as theirs (don't second-guess them):\n- ${lines.join("\n- ")}\n` : "";
 }
 

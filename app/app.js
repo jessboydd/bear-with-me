@@ -44,6 +44,7 @@ const I = {
   img: S('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>', 2),
   send: S('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.4),
   add: S('<path d="M12 5v14M5 12h14"/>', 2.4),
+  doc: S('<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>'),
   chev: S('<path d="M6 9l6 6 6-6"/>', 2.2),
   car: S('<path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/>', 2),
   phone: S('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>', 2)
@@ -54,7 +55,7 @@ const KIT_BEAR = `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="32" 
 const GUIDE_BEAR = `<svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="58" cy="62" r="32" fill="#231930"/><circle cx="182" cy="62" r="32" fill="#231930"/><ellipse cx="120" cy="126" rx="94" ry="80" fill="#231930"/><circle cx="84" cy="116" r="10" fill="#F8F4FC"/><circle cx="156" cy="116" r="10" fill="#F8F4FC"/><ellipse cx="120" cy="158" rx="46" ry="34" fill="#F8F4FC"/><path d="M104 142q16-10 32 0q-3 14-16 16q-13-2-16-16z" fill="#231930"/><path d="M120 158v8M108 170q12 9 24 0" fill="none" stroke="#231930" stroke-width="4.5" stroke-linecap="round"/></svg>`;
 
 /* ---------- State ---------- */
-const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null, needCode: false, retry: null };
+const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null, needCode: false, retry: null, manual: null, manualBusy: null, manualMsg: "" };
 const app = document.getElementById("app");
 const byId = id => LIGHTS.find(l => l.id === id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -99,6 +100,9 @@ function carSummary() {
 function carForBear() {
   const c = {};
   for (const k of ["model", "front", "rear", "spare", "spareKit", "oilType", "oilCheck"]) if (car[k]) c[k] = String(car[k]).slice(0, 60);
+  // Facts the driver confirmed from their owner's manual.
+  const m = Object.values(car.manual || {}).slice(0, 15).map(f => ({ label: String(f.label).slice(0, 40), value: String(f.value).slice(0, 100), note: String(f.note || "").slice(0, 80), page: f.page || null }));
+  if (m.length) c.manual = m;
   return Object.keys(c).length ? c : null;
 }
 
@@ -230,6 +234,7 @@ function carScreen() {
     </div>
   </div>
   <p class="muted small">Fill this in now, while things are calm. It's saved on this phone only, and the bear uses your car, tire and oil numbers when it helps you.</p>
+  ${manualSection()}
   <section class="carsec">
     <div class="label">Car</div>
     ${txt("model", "Year, make, model", { ph: "e.g. 2019 Honda Civic" })}
@@ -260,10 +265,104 @@ function carScreen() {
   <div class="spacer"></div>`;
 }
 
+/* ---------- Owner's manual ----------
+   Only in the live installable app: the phone reads the PDF, the server finds the facts
+   (app/manual.js, api/manual.js), and the driver checks each one before it's saved. */
+const manualOn = () => !!window.BEAR_PWA && !DEMO;
+function manualProgress(p) {
+  if (!p) return "";
+  return p.stage === "read" ? `Reading your manual… ${p.total ? `page ${p.done} of ${p.total}` : ""}`
+    : `Finding your car's numbers… ${p.done} of ${p.total} parts done`;
+}
+function manualSection() {
+  if (!window.BEAR_PWA) return "";
+  const saved = Object.values(car.manual || {});
+  return `<section class="carsec">
+    <div class="label">Owner's manual</div>
+    ${!manualOn() ? `<p class="small muted">Reading your manual works in the live app.</p>`
+      : st.manualBusy ? `<p class="small" id="mprog" aria-live="polite"><b>${esc(manualProgress(st.manualBusy))}</b></p><p class="hint" style="text-align:left">Keep this screen open. A long manual can take a minute or two.</p>`
+      : `<p class="small">Upload your owner's manual (PDF) and the bear will find your car's numbers in it. You'll check each one before it's saved.</p>
+    <button class="btn lav" id="manualBtn">${I.doc}Upload my owner's manual</button>
+    <p class="hint" style="text-align:left">Most car makers offer the manual as a free download on their owners' website.</p>`}
+    ${st.manualMsg ? `<p class="small" role="status">${esc(st.manualMsg)}</p>` : ""}
+    ${saved.length ? `<div class="label" style="margin-top:4px">From your manual</div>
+    <ul class="mlist">${saved.map(f => `<li><span>${esc(f.label)}</span><b>${esc(f.value)}</b>${f.note ? `<em>${esc(f.note)}</em>` : ""}${f.page ? `<em>Manual p. ${esc(f.page)}</em>` : ""}</li>`).join("")}</ul>
+    <button class="linkbtn" id="manualClear">Remove these</button>` : ""}
+  </section>`;
+}
+function manualScreen() {
+  const m = st.manual;
+  const n = Object.values(m.picks).filter(i => i != null).length;
+  return `
+  <div class="head">
+    <div class="headrow">
+      <button class="round" id="manualCancel" aria-label="Back">${I.back}</button>
+      <div class="t"><b>Check your manual's numbers</b></div>
+    </div>
+  </div>
+  <p class="muted small">Found in your ${m.pageCount}-page manual. Tap the right one for your car, or tap it again to skip it. Only what you pick is saved.</p>
+  ${m.found.map(f => {
+    const now = f.car ? car[f.car] : car.manual?.[f.key]?.value;
+    return `<section class="carsec">
+    <div class="label">${esc(f.label)}</div>
+    ${f.choices.length > 1 ? `<p class="hint" style="text-align:left">Your manual lists more than one.${f.unit === "PSI" ? " Check the sticker inside your driver's door to see which matches your car." : " Pick the one for your car."}</p>` : ""}
+    <div class="choices">${f.choices.map((c, i) => {
+      const on = m.picks[f.key] === i;
+      return `<button type="button" class="choice${on ? " on" : ""}" aria-pressed="${on}" data-mpick="${f.key}" data-i="${i}"><b>${esc(c.value)}${f.unit ? " " + f.unit : ""}</b>${c.note ? `<span>${esc(c.note)}</span>` : ""}${c.pages.length ? `<em>Manual p. ${c.pages.join(", ")}</em>` : ""}</button>`;
+    }).join("")}</div>
+    ${now && !f.choices.some(c => c.value === String(now)) ? `<p class="hint" style="text-align:left">Saved now: ${esc(now)}${f.unit ? " " + f.unit : ""}. Picking one here replaces it.</p>` : ""}
+  </section>`; }).join("")}
+  <button class="btn lav" id="manualSave" ${n ? "" : "disabled"}>${n ? `Save ${n} to My car's numbers` : "Pick at least one to save"}</button>
+  <button class="linkbtn" id="manualCancel2" style="align-self:center">Cancel</button>
+  <p class="hint">The bear can misread a manual. If something looks off, skip it and check your manual or door sticker.</p>
+  <div class="spacer"></div>`;
+}
+function manualError(e) {
+  if (e?.status === 401) { st.needCode = true; return "Enter your tester code on the home screen first, then try again."; }
+  return ({
+    locked: "That PDF is password-protected. Try the copy from the car maker's website.",
+    unreadable: "That file couldn't be opened as a PDF. Try downloading the manual again.",
+    "no text": "This PDF is a scanned copy with no text the app can read. Try the copy from the car maker's website.",
+    "nothing found": "I couldn't find tire, oil or fuel pages in that PDF. Is it the owner's manual?"
+  })[e?.kind] || (e?.status === 429 ? "Too many requests at once. Wait a minute and try again."
+    : "Reading the manual didn't finish. Check your signal and try again.");
+}
+async function runManual(file) {
+  if (st.manualBusy) return;
+  st.manualBusy = { stage: "read", done: 0, total: 0 }; st.manualMsg = ""; render();
+  try {
+    const { analyzeManual } = await import("./manual.js");
+    const res = await analyzeManual(file, { code: store.get("bearCode"), onProgress: p => {
+      st.manualBusy = p;
+      const el = document.getElementById("mprog"); if (el) el.innerHTML = `<b>${esc(manualProgress(p))}</b>`;
+    } });
+    if (!res.found.length) st.manualMsg = "I read the manual but couldn't find your car's numbers in it. You can still fill them in below.";
+    else {
+      // One clear answer is picked for them; when the manual lists several, they choose.
+      st.manual = { ...res, picks: Object.fromEntries(res.found.map(f => [f.key, f.choices.length === 1 ? 0 : null])) };
+      st.screen = "manual"; window.scrollTo(0, 0);
+    }
+  } catch (e) { st.manualMsg = manualError(e); }
+  finally { st.manualBusy = null; render(); }
+}
+function saveManual() {
+  const m = st.manual; let n = 0;
+  for (const f of m.found) {
+    const i = m.picks[f.key]; if (i == null) continue;
+    const c = f.choices[i]; n++;
+    if (f.car) car[f.car] = c.value;
+    else (car.manual ||= {})[f.key] = { label: f.label, value: c.value + (f.unit ? " " + f.unit : ""), note: c.note, page: c.pages[0] || null };
+  }
+  saveCar();
+  st.manual = null; st.screen = "car";
+  st.manualMsg = `Saved ${n} from your manual. You can still change any of them here.`;
+  render(); window.scrollTo(0, 0);
+}
+
 /* ---------- Render + events ---------- */
 let photoTarget = "new";
 function render() {
-  app.innerHTML = st.screen === "chat" ? chat() : st.screen === "car" ? carScreen() : home();
+  app.innerHTML = st.screen === "chat" ? chat() : st.screen === "car" ? carScreen() : st.screen === "manual" ? manualScreen() : home();
   const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
   const pick = (target, input) => () => { photoTarget = target; document.getElementById(input).click(); };
   on("snap", pick("new", "photo"));
@@ -272,7 +371,16 @@ function render() {
   on("unpend", () => { st.pending = null; render(); });
   on("install", async () => { const e = installEvt; installEvt = null; await e?.prompt(); render(); });
   on("installHide", () => { store.set("bearInstallHide", "1"); render(); });
-  on("openCar", () => { st.screen = "car"; render(); window.scrollTo(0, 0); });
+  on("openCar", () => { st.screen = "car"; st.manualMsg = ""; render(); window.scrollTo(0, 0); });
+  on("manualBtn", () => document.getElementById("manualFile")?.click());
+  on("manualSave", saveManual);
+  const leaveManual = () => { st.manual = null; st.screen = "car"; render(); window.scrollTo(0, 0); };
+  on("manualCancel", leaveManual); on("manualCancel2", leaveManual);
+  on("manualClear", () => { delete car.manual; saveCar(); st.manualMsg = ""; render(); });
+  app.querySelectorAll("[data-mpick]").forEach(b => b.onclick = () => {
+    const k = b.dataset.mpick, i = Number(b.dataset.i);
+    st.manual.picks[k] = st.manual.picks[k] === i ? null : i; render();
+  });
   app.querySelectorAll("[data-car]").forEach(inp => inp.oninput = () => {
     car[inp.dataset.car] = inp.value.trim(); saveCar();
     const sv = document.getElementById("saved"); if (sv) sv.textContent = "Saved on this phone.";
@@ -303,6 +411,9 @@ function render() {
   };
   if (st.screen === "chat") window.scrollTo(0, document.body.scrollHeight);
 }
+
+const manualFile = document.getElementById("manualFile");
+if (manualFile) manualFile.onchange = e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) runManual(f); };
 
 for (const id of ["photo", "upload"]) {
   document.getElementById(id).onchange = async e => {
