@@ -330,6 +330,7 @@ function manualScreen() {
       <div class="t"><b>Check your manual's numbers</b></div>
     </div>
   </div>
+  ${m.incomplete ? `<p class="small" role="status"><b>Part of your manual couldn't be read this time, so a few numbers may be missing.</b> Uploading it again may find them.</p>` : ""}
   <p class="muted small">Found in your ${m.pageCount}-page manual. Tap the right one for your car, or tap it again to skip it. Only what you pick is saved.</p>
   ${m.found.map(f => {
     const now = f.car ? car[f.car] : car.manual?.[f.key]?.value;
@@ -366,7 +367,9 @@ async function runManual(file) {
       st.manualBusy = p;
       const el = document.getElementById("mprog"); if (el) el.innerHTML = `<b>${esc(manualProgress(p))}</b>`;
     } });
-    if (!res.found.length) st.manualMsg = "I read the manual but couldn't find your car's numbers in it. You can still fill them in below.";
+    if (!res.found.length) st.manualMsg = res.incomplete
+      ? "Part of your manual couldn't be read this time, and I didn't find your car's numbers. Try uploading it again, or fill them in below."
+      : "I read the manual but couldn't find your car's numbers in it. You can still fill them in below.";
     else {
       // One clear answer is picked for them; when the manual lists several, they choose.
       st.manual = { ...res, picks: Object.fromEntries(res.found.map(f => [f.key, f.choices.length === 1 ? 0 : null])) };
