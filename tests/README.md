@@ -23,7 +23,7 @@ This makes **no AI calls**. It feeds in made-up sample replies that copy the pro
 
 ## 2. Add the photos for Test 4
 
-Put the two photos from Test 4 in `tests/fixtures/` as `t4-blurry-1.jpg` and `t4-blurry-2.jpg` (or change the names in `tests/scenarios.json`). Photos in `tests/fixtures/` are ignored by git, so they stay off the public repo. Without them, Test 4 is skipped in real runs.
+Put the two photos from Test 4 in `tests/fixtures/` as `t4-blurry-1.png` and `t4-blurry-2.png` (or change the names in `tests/scenarios.json`). Photos in `tests/fixtures/` are ignored by git, so they stay off the public repo. Without them, Test 4 is skipped in real runs.
 
 ## 3. Real runs (costs money: roughly $1–3 for both versions at 5 runs each)
 

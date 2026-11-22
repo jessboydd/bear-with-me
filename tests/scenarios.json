@@ -116,13 +116,13 @@
       "maxWords": 60,
       "turns": [
         {
-          "photo": "t4-blurry-1.jpg"
+          "photo": "t4-blurry-1.png"
         },
         {
           "text": "This warning light came on in my car. Can you tell me what it means and whether it's safe to keep driving?"
         },
         {
-          "photo": "t4-blurry-2.jpg",
+          "photo": "t4-blurry-2.png",
           "text": "Here is a new picture."
         },
         {
