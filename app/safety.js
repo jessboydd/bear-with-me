@@ -53,7 +53,7 @@ export const CHECK = {
 export const UNSURE_NOTE = "If it's red or flashing, or the car drives, sounds or smells different, pull over when it's safe.";
 // When to call 911, by what the driver reported. Not every stop needs 911.
 export const EMERGENCY = {
-  fire: "Smoke, fire or a fuel smell: get everyone out and away from the car, then call 911.",
+  fire: "Smoke, fire or a fuel smell: if you're driving, pull over as soon as it's safe and turn off the engine. Then get everyone out and away from the car, and call 911.",
   crash: "After a crash: if anyone is hurt or you're in danger, call 911.",
   hurt: "Someone is hurt: call 911.",
   stranded: "Stuck in traffic lanes or on tracks: turn on your hazards. If you can't get the car out of the way safely, get away from it if you safely can, and call 911."

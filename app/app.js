@@ -214,9 +214,11 @@ function checkBanner() {
 }
 // Not sure yet: the safe rule of thumb, and a way into the verified light list.
 function unsureCard() {
+  // The light list only helps when the chat is about a light or a photo of one.
+  const aboutLight = st.turns.some(t => t.photoUrl || (t.role === "user" && /\b(light|lights|symbol|icon|dashboard|dash|warning|indicator)\b/i.test(t.content)));
   return `<div class="unsure-card">
     <p>${esc(UNSURE_NOTE)}</p>
-    <button class="btn" id="openLights">${I.chev}Look up a dashboard light</button>
+    ${aboutLight ? `<button class="btn" id="openLights">${I.chev}Look up a dashboard light</button>` : ""}
   </div>`;
 }
 

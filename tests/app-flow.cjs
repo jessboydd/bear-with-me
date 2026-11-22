@@ -108,6 +108,13 @@ const check = (ok, what) => { console.log(`${ok ? "pass" : "FAIL"}  ${what}`); i
     check(await page.$eval("details.lightsbox", d => d.open), "unclear light: button opens the light list");
     await ctx.close(); }
 
+  // 6b. A rattle isn't about a light, so the card has no light-list button.
+  { const { page, ctx } = await phone([reply("A rattle over bumps could be something loose. Does the car pull?", "unsure", { topic: "Rattle over bumps" })]);
+    await startTyped(page, "I was in an accident last year, and now there's a rattle from the back when I go over bumps.");
+    await waitReply(page);
+    check(!!(await page.$(".unsure-card")) && !(await page.$("#openLights")), "rattle: Not sure yet card without the light-list button");
+    await ctx.close(); }
+
   // 7. Light list: grouped like the booklet, with each light's real urgency where it differs.
   { const { page, ctx } = await phone([]);
     await page.click("summary");

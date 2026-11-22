@@ -149,5 +149,7 @@ test("the bear is told what's on screen, in the booklet's words", () => {
   assert.doesNotMatch(s, /spare/i);
   assert.match(describeShown({ level: "stop", light: "oil_pressure" }), /Turn the engine off/);
   assert.match(describeShown({ level: "stop", emergency: "fire" }), /911/);
+  const fire = describeShown({ level: "stop", emergency: "fire" });
+  assert.ok(fire.indexOf("pull over") < fire.indexOf("get everyone out"), "smoke: pull over comes before getting out");
   assert.equal(describeShown({ level: "nonsense" }), "");
 });
