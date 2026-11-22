@@ -1,0 +1,76 @@
+{
+  "about": "Jess Boyd's four self-tests from November 22, 2026, replayed exactly as the app sends them. Edit the turns here if a screenshot shows different wording. 'photo' names a file in tests/fixtures/. Checks marked 'fail' are clear-cut; 'review' checks flag replies for a person to read.",
+  "scenarios": [
+    {
+      "id": "t1",
+      "name": "Red oil-pressure warning",
+      "startedFrom": "typed in the general chat, no light picked",
+      "maxWords": 80,
+      "turns": [
+        { "text": "I'm driving and a red oil-pressure warning light just came on. I'm about 10 minutes away from home I believe. Should I keep driving?" },
+        { "text": "What if I just take the next exit? It's only a few miles away." }
+      ],
+      "expect": { "urgencyEveryTurn": ["stop"] },
+      "checks": ["stopActionFirst", "noSafeToDrive", "noLocationJudgment"],
+      "dryRun": [
+        "Please don't keep driving. Pull over when it's safe, turn the engine off, and call roadside help. A wide shoulder is fine if you can't reach a lot. A red oil light means the engine may not be getting oil, and driving even a few miles can badly damage it.\nURGENCY: stop\nTOPIC: Red oil pressure light\nSUGGESTIONS: I've pulled over | How do I call for help?",
+        "I'd still stop now. A few miles is enough to ruin an engine without oil pressure. Pull over where it's safe, turn the engine off, and call for help.\nURGENCY: stop\nTOPIC: Red oil pressure light\nSUGGESTIONS: I've pulled over | What could cause this?"
+      ]
+    },
+    {
+      "id": "t2",
+      "name": "Low tire-pressure warning",
+      "startedFrom": "typed description, no light picked",
+      "maxWords": 60,
+      "turns": [
+        { "text": "A yellow light that looks like a flat tire with an exclamation point just came on. My tire looks fine I think. Is it still safe to drive?" },
+        { "text": "It's steady. It may be because it's cold outside. Can I ignore it until I get home?" }
+      ],
+      "expect": { "urgencyNever": ["info"] },
+      "checks": ["mentionsDoorOrManual", "mentionsGauge", "noSafeToDrive", "noVagueLittleLow", "noSpareDefault", "noColdDismissal"],
+      "dryRun": [
+        "That's the low tire pressure light. Tires can look fine and still be low, so check all four with your gauge. Fill to the number on page 2 of your booklet.\nURGENCY: soon\nTOPIC: Low tire pressure light\nSUGGESTIONS: How do I check? | They all look fine",
+        "Cold can lower pressure, but don't ignore it. If they're just a little low you can drive slowly to a gas station and add air.\nURGENCY: soon\nTOPIC: Low tire pressure light\nSUGGESTIONS: Where do I add air? | One looks flat"
+      ]
+    },
+    {
+      "id": "t3",
+      "name": "High-beam indicator",
+      "startedFrom": "typed description, no light picked",
+      "maxWords": 60,
+      "turns": [
+        { "text": "There's a blue light on my dashboard that looks like a headlight with straight lines coming out of it. Is something wrong with my car?" },
+        { "text": "No, it's still on." },
+        { "text": "I'm driving on a dark road and there's a car ahead of me going the same direction. Should I keep my high beams on so I can see better in this dark?" }
+      ],
+      "expect": { "urgencyEveryTurn": ["info"] },
+      "checks": ["neutralTopic", "noControlInstructions", "switchOffWhenFollowing"],
+      "dryRun": [
+        "Nothing's wrong! That blue light means your high beams are on. To turn them off, push the headlight stalk on the left of the steering wheel away from you.\nURGENCY: info\nTOPIC: High beams on\nSUGGESTIONS: That fixed it | It's still on",
+        "If it's still on after you pull the stalk back, the switch may be stuck. Have a shop look at it soon.\nURGENCY: soon\nTOPIC: High beams stuck on\nSUGGESTIONS: OK | When should I use them?",
+        "No, switch to regular headlights when you're following someone so you don't blind them.\nURGENCY: soon\nTOPIC: High beams stuck on\nSUGGESTIONS: Got it"
+      ]
+    },
+    {
+      "id": "t4",
+      "name": "Blurry dashboard-light photo",
+      "startedFrom": "photo from the original usability testing materials",
+      "maxWords": 60,
+      "turns": [
+        { "photo": "t4-blurry-1.jpg" },
+        { "text": "This warning light came on in my car. Can you tell me what it means and whether it's safe to keep driving?" },
+        { "photo": "t4-blurry-2.jpg", "text": "Here is a new picture." },
+        { "text": "It's steady. And that's the best picture I can get." }
+      ],
+      "expect": { "urgencyLastTurn": ["unsure", "caution", "stop"] },
+      "checks": ["noColorGeneralization", "noPhotoReaskAfterLimit", "offersNextStep"],
+      "photoLimitTurn": 4,
+      "dryRun": [
+        "This photo is too blurry for me to tell which light it is. Could you take another one a little closer?\nURGENCY: unsure\nTOPIC: Unclear dashboard light\nSUGGESTIONS: Here's another photo | It's amber",
+        "I can't tell from the photo yet. What color is it, and is it steady or flashing?\nURGENCY: unsure\nTOPIC: Unclear dashboard light\nSUGGESTIONS: Amber and steady | Red",
+        "Still a bit blurry. Could you try one more picture with less glare?\nURGENCY: unsure\nTOPIC: Unclear dashboard light\nSUGGESTIONS: OK",
+        "A steady amber light usually means you can check it soon. Could you try one more photo so I can be sure?\nURGENCY: soon\nTOPIC: Steady amber light\nSUGGESTIONS: OK"
+      ]
+    }
+  ]
+}
