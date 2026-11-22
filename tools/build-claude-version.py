@@ -11,6 +11,7 @@ import re, sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 app = (ROOT / "app/app.js").read_text()
 lights = (ROOT / "app/lights.js").read_text()
+safety = (ROOT / "app/safety.js").read_text()
 api = (ROOT / "api/chat.js").read_text()
 html = (ROOT / "app/index.html").read_text()
 
@@ -20,6 +21,9 @@ def sub(a, b, s):
 
 lights = re.sub(r"^//.*\n", "", lights, flags=re.M).replace("export const LIGHTS", "const LIGHTS")
 app = sub('import { LIGHTS } from "./lights.js";\n', lights + "\n", app)
+# The safety rules (levels, banners, emergency check) go in once, after the lights they use.
+safety = re.sub(r'^import .*\n', "", safety, flags=re.M).replace("export const", "const").replace("export function", "function")
+app = re.sub(r'import \{[^}]*\} from "\./safety\.js";\n', lambda m: safety + "\n", app, count=1)
 
 a = app.index("/* ---------- Mode ----------"); b = app.index("const TOPICS")
 app = app[:a] + '''/* ---------- Mode ----------
@@ -38,7 +42,7 @@ a = app.index("async function liveReply")
 b = app.rindex("}", 0, app.index("// The driver's own saved numbers")) + 1
 app = app[:a] + r'''async function sampleReply(bot, pic) {
   const history = st.turns.filter(t => t !== bot).slice(-14).map(t => ({ role: t.role, content: t.content }));
-  const input = [{ role: "user", content: rules(st.light, carForBear()) }];
+  const input = [{ role: "user", content: rules(st.light, carForBear(), shownNow()) }];
   if (history[0]?.role === "assistant") input.push({ role: "user", content: "(I opened the chat.)" });
   input.push(...history);
   const opts = { cache: false, onText: ({ text }) => {

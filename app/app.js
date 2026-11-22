@@ -1,4 +1,5 @@
 import { LIGHTS } from "./lights.js";
+import { LEVEL, RANK, STOP_STEPS, STOP_NOTE, STOP_FIRST, CHECK, UNSURE_NOTE, EMERGENCY, checkMessage, nextLevel } from "./safety.js";
 
 /* ---------- Mode ----------
    live: talks to /api/chat (the private server piece on Vercel).
@@ -8,7 +9,6 @@ const DEMO = params.has("demo") || location.protocol === "file:" || location.hos
 const API = "/api/chat";
 
 const TOPICS = ["A light came on", "Tire looks low or flat", "Something's leaking", "A weird noise", "Smoke or a burning smell", "Car won't start", "Brakes feel off"];
-const LEVEL = { stop: "Stop soon", soon: "Check soon", info: "FYI", unsure: "Still figuring out" };
 
 /* ---------- Icons ---------- */
 const S = (inner, sw = 1.8) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
@@ -33,6 +33,7 @@ const SYM = { // same symbols as the booklet
 // Symbol colors as they glow on a dashboard
 const GLOW = { eps:"#FF5A5F", airbag:"#FF5A5F", oil_pressure:"#FF5A5F", coolant_temp:"#FF5A5F", battery:"#FF5A5F", brake:"#FF5A5F", seatbelt:"#FF5A5F", door_open:"#FF5A5F", high_beam:"#4D8DFF" };
 const SHAPE = {
+  check: '<svg viewBox="0 0 28 28" aria-hidden="true"><polygon points="8.2,1 19.8,1 27,8.2 27,19.8 19.8,27 8.2,27 1,19.8 1,8.2" fill="#231930"/><path d="M14 7v9" stroke="#FF7044" stroke-width="3.4" stroke-linecap="round"/><circle cx="14" cy="21" r="2" fill="#FF7044"/></svg>',
   stop: '<svg viewBox="0 0 28 28" aria-hidden="true"><polygon points="8.2,1 19.8,1 27,8.2 27,19.8 19.8,27 8.2,27 1,19.8 1,8.2" fill="currentColor"/></svg>',
   soon: '<svg viewBox="0 0 28 28" aria-hidden="true"><polygon points="14,2 27,26 1,26" fill="#F2B705" stroke="#231930" stroke-width="2.5" stroke-linejoin="round"/></svg>',
   info: '<svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="13" fill="currentColor"/></svg>',
@@ -55,7 +56,7 @@ const KIT_BEAR = `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="32" 
 const GUIDE_BEAR = `<svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="58" cy="62" r="32" fill="#231930"/><circle cx="182" cy="62" r="32" fill="#231930"/><ellipse cx="120" cy="126" rx="94" ry="80" fill="#231930"/><circle cx="84" cy="116" r="10" fill="#F8F4FC"/><circle cx="156" cy="116" r="10" fill="#F8F4FC"/><ellipse cx="120" cy="158" rx="46" ry="34" fill="#F8F4FC"/><path d="M104 142q16-10 32 0q-3 14-16 16q-13-2-16-16z" fill="#231930"/><path d="M120 158v8M108 170q12 9 24 0" fill="none" stroke="#231930" stroke-width="4.5" stroke-linecap="round"/></svg>`;
 
 /* ---------- State ---------- */
-const st = { screen: "home", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null, needCode: false, retry: null, manual: null, manualBusy: null, manualMsg: "" };
+const st = { screen: "home", turns: [], topic: "", level: "unsure", floor: null, emergency: null, light: null, quick: [], busy: false, error: "", pending: null, photo: null, needCode: false, retry: null, manual: null, manualBusy: null, manualMsg: "" };
 const app = document.getElementById("app");
 const byId = id => LIGHTS.find(l => l.id === id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -165,7 +166,7 @@ function home() {
     ${["stop","soon","info"].map(lv => `
     <div class="label lvl">${chip(lv)}</div>
     <div class="lights">
-      ${LIGHTS.filter(l => l.level === lv).map(l => `<button class="light" data-pick="${l.id}"><span class="sym" style="color:${GLOW[l.id] || "#F2B705"}">${SYM[l.id]}</span><b>${esc(l.name)}</b>${l.urgent ? `<span class="chip stop">${SHAPE.stop}Stop</span>` : ""}</button>`).join("")}
+      ${LIGHTS.filter(l => l.group === lv).map(l => `<button class="light" data-pick="${l.id}"><span class="sym" style="color:${GLOW[l.id] || "#F2B705"}">${SYM[l.id]}</span><b>${esc(l.name)}</b>${l.level !== l.group ? chip(l.level) : ""}</button>`).join("")}
     </div>`).join("")}
   </details>
   <p class="hint">The bear can get things wrong. If you ever feel unsafe, call 911.</p>
@@ -179,22 +180,50 @@ function codeBox() {
   </div>`;
 }
 
+// The red banner: stop driving. Wording from the booklet (app/safety.js).
+function roadsideLine(dark) {
+  return car.roadside ? `<a class="callbtn" href="${telHref(car.roadside)}">${I.phone}Call roadside help</a>`
+    : `<p>Roadside help: your number is on page 2 of your booklet, or save it in My car's numbers.</p>`;
+}
+function emergencyLine() {
+  return st.emergency && EMERGENCY[st.emergency] ? `<p class="sos">${esc(EMERGENCY[st.emergency])}</p>` : "";
+}
 function stopBanner() {
-  return `<div class="banner" role="alert">
-    <div class="bt">${SHAPE.stop.replace('fill="currentColor"', 'fill="#FFFFFF"')}Stop soon</div>
-    <ol>
-      <li>Pull over as soon as it's safe.</li>
-      <li>Turn off the engine and turn on your hazard lights.</li>
-      <li>Don't keep driving until someone checks it.</li>
-    </ol>
-    ${car.roadside ? `<a class="callbtn" href="${telHref(car.roadside)}">${I.phone}Call roadside help</a>` : `<p>Roadside help: your number is on page 2 of your booklet, or save it in My car's numbers.</p>`}
-    <p>In danger, smoke or fire? Get away from the car and call <b>911</b>.</p>
+  const first = st.light && STOP_FIRST[st.light.id];
+  return `<div class="banner" id="steps" role="alert">
+    <div class="bt">${SHAPE.stop.replace('fill="currentColor"', 'fill="#FFFFFF"')}${LEVEL.stop}</div>
+    ${emergencyLine()}
+    <p class="sub">Stop driving. Don't go on until someone checks it.</p>
+    ${first ? `<p class="first">${esc(first)}</p>` : ""}
+    <ol>${STOP_STEPS.map(x => `<li>${esc(x)}</li>`).join("")}</ol>
+    <p>${esc(STOP_NOTE)}</p>
+    ${roadsideLine()}
+    ${st.emergency ? "" : `<p>In danger, smoke or fire? Get away from the car and call <b>911</b>.</p>`}
+  </div>`;
+}
+// The orange banner: stop somewhere safe and look; what they find decides what's next.
+function checkBanner() {
+  const c = st.light?.id === "tpms" ? CHECK.tpms : CHECK.general;
+  return `<div class="banner check" id="steps" role="alert">
+    <div class="bt">${SHAPE.check}${LEVEL.check}</div>
+    <p class="sub">${esc(c.lead)}</p>
+    <ol>${c.steps.map(x => `<li>${esc(x)}</li>`).join("")}</ol>
+    <p><b>${esc(c.warn)}</b></p>
+    ${car.roadside ? roadsideLine() : ""}
+  </div>`;
+}
+// Not sure yet: the safe rule of thumb, and a way into the verified light list.
+function unsureCard() {
+  return `<div class="unsure-card">
+    <p>${esc(UNSURE_NOTE)}</p>
+    <button class="btn" id="openLights">${I.chev}Look up a dashboard light</button>
   </div>`;
 }
 
 function chat() {
   const msgs = st.turns.map(t => {
     if (t.role === "user") return `<div class="msg me">${t.photoUrl ? `<img src="${t.photoUrl}" alt="Your photo">` : ""}${esc(t.display ?? t.content)}</div>`;
+    if (t.role === "note") return `<div class="change" role="status">${esc(t.content)}</div>`;
     return `<div class="msg bot${t.think ? " think" : ""}">${esc(t.display ?? t.content)}</div>`;
   }).join("");
   return `
@@ -202,11 +231,12 @@ function chat() {
     <div class="headrow">
       <button class="round" id="home" aria-label="Start over">${I.back}</button>
       <span style="width:36px;height:36px;flex:none">${GUIDE_BEAR}</span>
-      <div class="t"><b>${esc(st.topic || "Ask the bear")}</b>${chip(st.level)}${DEMO ? ' <span class="chip unsure">Demo</span>' : ""}</div>
+      <div class="t"><b>${esc(st.topic || "Ask the bear")}</b>${RANK[st.level] >= RANK.check ? `<button class="chipbtn" id="showSteps" aria-label="Show the steps">${chip(st.level)}<span class="small">Steps ↑</span></button>` : chip(st.level)}${DEMO ? ' <span class="chip unsure">Demo</span>' : ""}</div>
     </div>
-    ${st.level === "stop" ? stopBanner() : ""}
   </div>
+  ${st.level === "stop" ? stopBanner() : st.level === "check" ? checkBanner() : ""}
   <div class="chat" id="chatlog">${msgs}</div>
+  ${st.level === "unsure" && !st.busy && st.turns.some(t => t.role === "assistant" && !t.think) ? unsureCard() : ""}
   ${st.quick.length && !st.busy ? `<div class="quick">${st.quick.map(q => `<button data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
   ${st.error ? `<p class="err">${esc(st.error)}</p>` : ""}
   <div class="composer">
@@ -371,6 +401,12 @@ function render() {
   on("unpend", () => { st.pending = null; render(); });
   on("install", async () => { const e = installEvt; installEvt = null; await e?.prompt(); render(); });
   on("installHide", () => { store.set("bearInstallHide", "1"); render(); });
+  on("showSteps", () => document.querySelector(".banner")?.scrollIntoView({ block: "start", behavior: "smooth" }));
+  on("openLights", () => {
+    st.screen = "home"; render();
+    const box = document.querySelector("details.lightsbox");
+    if (box) { box.open = true; box.scrollIntoView({ block: "start" }); }
+  });
   on("openCar", () => { st.screen = "car"; st.manualMsg = ""; render(); window.scrollTo(0, 0); });
   on("manualBtn", () => document.getElementById("manualFile")?.click());
   on("manualSave", saveManual);
@@ -441,7 +477,7 @@ async function shrink(file) {
 }
 
 /* ---------- Conversation ---------- */
-function reset() { Object.assign(st, { screen: "chat", turns: [], topic: "", level: "unsure", light: null, quick: [], busy: false, error: "", pending: null, photo: null }); }
+function reset() { Object.assign(st, { screen: "chat", turns: [], topic: "", level: "unsure", floor: null, emergency: null, light: null, quick: [], busy: false, error: "", pending: null, photo: null }); }
 
 function start(text, pic) {
   reset();
@@ -451,21 +487,32 @@ function start(text, pic) {
 
 function startLight(l) {
   reset();
-  const stop = l.level === "stop" || l.urgent;
-  st.light = l; st.topic = l.name; st.level = stop ? "stop" : l.level;
+  const stop = l.level === "stop";
+  st.light = l; st.topic = l.name; st.level = l.level;
+  st.floor = RANK[l.level] >= RANK.check ? l.level : null;
   const first = stop
-    ? "Do the steps above first. Once you're stopped somewhere safe, tell me what's happening and I'll help with what comes next."
+    ? "Follow the steps at the top first. Once you're stopped somewhere safe, tell me what's happening and I'll help with what comes next."
     : l.first;
   st.turns.push({ role: "assistant", content: first });
   st.quick = stop ? ["I've pulled over", "I'm on the highway", "What could cause this?"] : l.quick;
   render(); window.scrollTo(0, 0);
 }
 
-const RANK = { info: 0, unsure: 1, soon: 2, stop: 3 };
-function applyMeta({ urgency, topic, suggestions }) {
-  // Urgency only goes up on its own; it comes down only on a clear "info" call.
-  if (LEVEL[urgency] && (RANK[urgency] >= RANK[st.level] || urgency === "info" || st.level === "unsure")) st.level = urgency;
+// The bear's urgency goes through app/safety.js: Stop and Stop & check stay until the
+// driver reports a change and the bear agrees; a picked light or an emergency sets a floor.
+function applyMeta({ urgency, topic, suggestions, lower, light }, driverText) {
+  // Title first: once a light is known, the title stays put instead of drifting to a guess.
   if (topic && !st.light) st.topic = topic.slice(0, 40);
+  // The bear recognized a light from the verified list: show its verified banner and
+  // keep its urgency, the same as picking it from the list.
+  if (!st.light && byId(light)) {
+    st.light = byId(light);
+    if (RANK[st.light.level] >= RANK.check && RANK[st.light.level] > (RANK[st.floor] ?? -1)) st.floor = st.light.level;
+  }
+  const r = nextLevel({ current: st.level, floor: st.floor, ai: urgency, lower, driverText });
+  if (r.lowered) st.turns.push({ role: "note", content: `Now: ${LEVEL[r.level]}. ${r.lowered.replace(/\.?$/, ".")}` });
+  if (!r.floor) st.emergency = null;
+  st.level = r.level; st.floor = r.floor;
   st.quick = (suggestions || []).slice(0, 3);
 }
 
@@ -476,6 +523,11 @@ async function send(text) {
   if (pic) content = (content ? content + "\n\n" : "") + "[I attached a photo of the problem.]";
   if (!content) return;
   st.turns.push({ role: "user", content, display: text, photoUrl: pic?.url });
+  const hit = checkMessage(text);
+  if (hit) {
+    st.floor = "stop"; st.level = "stop";
+    if (hit.tier === "911") st.emergency = hit.kind;
+  }
   st.busy = true; st.error = ""; st.quick = [];
   const bot = { role: "assistant", content: "", display: pic ? "Taking a look…" : "Thinking…", think: true };
   st.turns.push(bot);
@@ -485,7 +537,7 @@ async function send(text) {
     const res = DEMO ? await demoReply(content, !!pic) : await liveReply(bot, pic);
     bot.content = bot.display = res.text; bot.think = false;
     if (pic) st.photo = pic;
-    applyMeta(res);
+    applyMeta(res, text);
   } catch (e) {
     st.turns.pop(); st.turns.pop();
     if (pic) st.pending = pic;
@@ -524,16 +576,19 @@ async function checkCode(c) {
   } catch { return null; }
 }
 
+// What's on screen, so the bear can point to it instead of repeating it.
+const shownNow = () => ({ level: st.level, light: st.light?.id || "", emergency: st.emergency || "" });
+
 async function liveReply(bot, pic) {
   // The newest photo goes with every message so the bear can keep looking at it;
   // the server pins it to the message it was sent with. Older photos are covered
   // by the bear's own descriptions.
   const photo = pic || st.photo;
-  const history = st.turns.filter(t => t !== bot).slice(-14).map(t => ({ role: t.role, content: t.content }));
+  const history = st.turns.filter(t => t !== bot && t.role !== "note").slice(-14).map(t => ({ role: t.role, content: t.content }));
   const r = await fetch(API, {
     method: "POST",
     headers: { "content-type": "application/json", "x-bear-code": store.get("bearCode") },
-    body: JSON.stringify({ messages: history, lightId: st.light?.id || null, car: carForBear(), image: photo ? { media_type: photo.media_type, data: photo.data } : null })
+    body: JSON.stringify({ messages: history, lightId: st.light?.id || null, car: carForBear(), shown: shownNow(), image: photo ? { media_type: photo.media_type, data: photo.data } : null })
   });
   if (!r.ok) { const err = new Error("http"); err.status = r.status; throw err; }
   return r.json();

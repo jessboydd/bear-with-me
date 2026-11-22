@@ -1,6 +1,15 @@
+# Tests
+
+| What | Command | Cost |
+|---|---|---|
+| The app's own safety rules: emergency check (including negated, hypothetical, past and quoted statements), urgency floors, lowering only on a reported change | `npm test` | free |
+| The app's labels and banners in a phone-sized browser, with scripted bear replies (needs Playwright and `npm run dev` running) | `node tests/app-flow.cjs` | free |
+| Scenario dry run: checks the scoring with made-up sample replies | `npm run test:scenarios:dry` | free |
+| Scenario runs against the real bear | see below | about $1–3 |
+
 # Scenario tests
 
-`tools/scenario-test.mjs` replays the four self-tests from November 22, 2026 (`tests/scenarios.json`) against the bear and writes a report you can read side by side with your own notes.
+`tools/scenario-test.mjs` replays the four self-tests from November 22, 2026 (t1–t4 in `tests/scenarios.json`), two false-alarm checks (t5, t6) and one real emergency (t7) against the bear, and writes a report you can read side by side with your own notes. For each reply it records the bear's own urgency **and the label the driver would actually see** after the app's safety rules, plus the banner, length and any issues.
 
 It calls the same server piece as the live app (`api/chat.js`): the same model, rules, reply limit and Anthropic call. Nothing about the app changes when you run it.
 
@@ -47,12 +56,18 @@ node --env-file=.env.test tools/scenario-test.mjs --runs 5 --label baseline
 The live version as tested on November 22 is saved on the branch `claude/preserve-live-2026-11-22`.
 
 ```bash
-git worktree add ../bear-baseline claude/preserve-live-2026-11-22
+git fetch origin claude/preserve-live-2026-11-22
 ```
 
 ```bash
-node tools/scenario-test.mjs --runs 5 --label baseline --handler ../bear-baseline/api/chat.js
+git worktree add ../bear-baseline FETCH_HEAD
 ```
+
+```bash
+node tools/scenario-test.mjs --runs 5 --label baseline --handler ../bear-baseline/api/chat.js --app-logic old
+```
+
+`--app-logic old` reproduces how the live app turned the bear's urgency into a label on November 22 (no Stop & check level, no emergency check), so the baseline is judged on what testers actually saw.
 
 ```bash
 node tools/scenario-test.mjs --runs 5 --label revised
