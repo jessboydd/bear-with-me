@@ -3,6 +3,7 @@
 // Order and wording match the pocket booklet (pp. 4–11). Checked against the
 // 2017 Toyota RAV4 owner's manual (pp. 78–82, 615–634, 662–663) on Oct 30, 2026,
 // keeping the booklet generic and taking the stricter "stop" advice where cars differ.
+// Record of that review: docs/verification/2026-10-30-rav4-manual-review.md
 // group: the booklet section it's listed in (red stop / amber soon / green-blue info).
 // level: how urgent it is (app/safety.js): stop, check (stop somewhere safe and look),
 //        soon, info, or unsure. Amber lights with the booklet's red STOP callout aren't "soon".
