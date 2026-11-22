@@ -86,17 +86,19 @@ export async function analyzeManual(file, { code, onProgress, api = "/api/manual
   const todo = parts(usefulPages(pages));
   if (!todo.length) throw new ManualError("nothing found");
   const facts = [];
-  let done = 0, next = 0;
+  let done = 0, next = 0, incomplete = 0;
   onProgress?.({ stage: "find", done, total: todo.length });
   async function worker() {
     while (next < todo.length) {
       const part = todo[next++];
       const r = await fetch(api, { method: "POST", headers: { "content-type": "application/json", "x-bear-code": code || "" }, body: JSON.stringify({ pages: part }) });
       if (!r.ok) throw new ManualError("http", r.status);
-      facts.push(...((await r.json()).facts || []));
+      const body = await r.json();
+      facts.push(...(body.facts || []));
+      if (body.incomplete) incomplete++;
       onProgress?.({ stage: "find", done: ++done, total: todo.length });
     }
   }
   await Promise.all(Array.from({ length: Math.min(AT_ONCE, todo.length) }, worker));
-  return { pageCount: pages.length, found: mergeFacts(facts) };
+  return { pageCount: pages.length, found: mergeFacts(facts), incomplete };
 }

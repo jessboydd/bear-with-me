@@ -4,10 +4,13 @@
 // Uses the same settings as api/chat.js (ANTHROPIC_API_KEY, BEAR_ACCESS_CODE, BEAR_MODEL).
 
 import { MANUAL_FIELDS, FIELD } from "../app/manual-fields.js";
+import { askClaude } from "./_ask.js";
 
 const MODEL = process.env.BEAR_MODEL || "claude-sonnet-5-5";
 const MAX_PAGES = 60;
 const MAX_CHARS = 90_000;
+// Room for the model's thinking plus the list of facts.
+const MAX_TOKENS = 6000;
 
 export function manualRules() {
   return `You read pages from a car owner's manual and pull out facts about the driver's car. Return JSON only, no other text.
@@ -71,22 +74,19 @@ export default async function handler(req, res) {
   if (error) return res.status(error.startsWith("too") ? 413 : 400).json({ error });
 
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({ model: MODEL, max_tokens: 2000, system: manualRules(), messages: [{ role: "user", content: text }] })
+    // Complete means the list of facts arrived whole. Retry only if there's time left
+    // within the 60 seconds Vercel allows this piece (vercel.json).
+    const reply = await askClaude({
+      request: { model: MODEL, max_tokens: MAX_TOKENS, system: manualRules(), messages: [{ role: "user", content: text }] },
+      complete: full => { try { return Array.isArray(JSON.parse(full.slice(full.indexOf("{"), full.lastIndexOf("}") + 1)).facts); } catch { return false; } },
+      retryWithinMs: 25_000
     });
-    if (!r.ok) {
-      console.error("Anthropic API error", r.status, await r.text());
-      return res.status(r.status === 429 ? 429 : 502).json({ error: "ai unavailable" });
+    if (reply.error) {
+      console.error("Anthropic API error", reply.error, reply.detail);
+      return res.status(reply.error === 429 ? 429 : 502).json({ error: "ai unavailable" });
     }
-    const data = await r.json();
-    const full = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-    return res.status(200).json({ facts: parseFacts(full) });
+    // incomplete: this part of the manual couldn't be read in full; the app says so.
+    return res.status(200).json({ facts: parseFacts(reply.text), incomplete: !reply.ok });
   } catch (e) {
     console.error(e);
     return res.status(502).json({ error: "ai unavailable" });
