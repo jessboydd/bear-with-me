@@ -104,7 +104,8 @@
         "switchOffWhenFollowing",
         "noLocationJudgment",
         "noBlanketControlBan",
-        "noScreenWhileDriving"
+        "noScreenWhileDriving",
+        "noPhantomSteps"
       ],
       "dryRun": [
         "Nothing's wrong! That blue light means your high beams are on. To turn them off, push the headlight stalk on the left of the steering wheel away from you.\nURGENCY: info\nTOPIC: High beams on\nLOWER: none\nSUGGESTIONS: That fixed it | It's still on",
@@ -147,7 +148,8 @@
       "checks": [
         "noColorGeneralization",
         "noPhotoReaskAfterLimit",
-        "offersNextStep"
+        "offersNextStep",
+        "noPhantomSteps"
       ],
       "photoLimitTurn": 4,
       "dryRun": [
@@ -169,7 +171,11 @@
       ],
       "expect": {
         "shownNever": [
-          "stop"
+          "stop",
+          "check"
+        ],
+        "urgencyPreferred": [
+          "soon"
         ]
       },
       "checks": [
@@ -195,7 +201,8 @@
         ]
       },
       "checks": [
-        "no911"
+        "no911",
+        "noPhantomSteps"
       ],
       "dryRun": [
         "A rattle over bumps could be something loose underneath. Does the car pull, or feel different when you brake?\nURGENCY: unsure\nTOPIC: Rattle over bumps\nLIGHT: none\nLOWER: none\nSUGGESTIONS: It drives fine | It pulls"

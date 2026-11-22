@@ -62,7 +62,7 @@ export const LIGHTS = [
     quick: ["It says Stop", "Something about maintenance", "A door is open"] },
   { id: "high_beam", group: "info", name: "High beams on", level: "info",
     looks: "A blue headlight shape (like a capital D) with straight lines going out to the side.",
-    facts: "Your high beams (brights) are on. Nothing is wrong with the car. Switch them off for oncoming cars or when following someone, so you don't dazzle the other driver. How to switch them differs from car to car: the headlights section of the owner's manual shows how on theirs. Don't describe a lever or switch movement, and never suggest trying controls while driving.",
+    facts: "Your high beams (brights) are on. Nothing is wrong with the car. Switch them off for oncoming cars or when following someone, so you don't dazzle the other driver. How to switch them differs from car to car: the headlights section of the owner's manual shows how on theirs. Don't describe a lever or switch movement. If they don't know how to switch them off, they can pull over when it's safe and check the headlights section of the owner's manual.",
     first: "That blue light means your high beams are on. Nothing is wrong with the car.",
     quick: ["When should I use them?", "How do I switch them off?"] },
   { id: "seatbelt", group: "info", name: "Seatbelt", level: "info",

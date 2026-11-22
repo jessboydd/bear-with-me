@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "node dev.js",
-    "test": "node --test tests/safety.test.mjs",
+    "test": "node --test tests/safety.test.mjs tests/rules.test.mjs",
     "test:scenarios:dry": "node tools/scenario-test.mjs --dry-run"
   }
 }
