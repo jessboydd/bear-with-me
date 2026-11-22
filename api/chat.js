@@ -8,8 +8,14 @@
 //   BEAR_MODEL          optional. Defaults to claude-sonnet-5-5.
 
 import { LIGHTS } from "../app/lights.js";
+import { askClaude } from "./_ask.js";
 
 const MODEL = process.env.BEAR_MODEL || "claude-sonnet-5-5";
+// Room for the model's thinking plus the reply. Reply length is set by the rules
+// ("two to five short sentences"), not by this limit.
+const MAX_TOKENS = 2000;
+// Shown if a reply still doesn't arrive after one retry. The urgency label stays as it was.
+export const FALLBACK = "I couldn't finish that answer. If anything feels unsafe, pull over when it's safe. Then try asking again.";
 const MAX_TURNS = 16;
 const MAX_TEXT = 2000;
 const MAX_IMAGE_B64 = 3_000_000; // about 2.2 MB of JPEG; the app sends far less
@@ -65,7 +71,7 @@ URGENCY meanings: stop = pull over / don't drive / get help now; soon = get it l
 
 const META = /\n\s*(URGENCY|TOPIC|SUGGESTIONS)\s*:/i;
 export function parse(full) {
-  const text = full.split(META)[0].trim() || "Sorry, I lost my train of thought. Could you say that again?";
+  const text = full.split(META)[0].trim() || FALLBACK;
   const get = key => (full.match(new RegExp(`^\\s*${key}\\s*:\\s*(.+)$`, "im")) || [])[1]?.trim() || "";
   return {
     text,
@@ -121,22 +127,18 @@ export default async function handler(req, res) {
   const light = LIGHTS.find(l => l.id === body?.lightId) || null;
 
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({ model: MODEL, max_tokens: 700, system: rules(light, body?.car), messages })
+    // A reply counts as complete when it has a message and the URGENCY line the app reads.
+    const reply = await askClaude({
+      request: { model: MODEL, max_tokens: MAX_TOKENS, system: rules(light, body?.car), messages },
+      complete: full => !!full.split(META)[0].trim() && /^\s*URGENCY\s*:/im.test(full)
     });
-    if (!r.ok) {
-      console.error("Anthropic API error", r.status, await r.text());
-      return res.status(r.status === 429 ? 429 : 502).json({ error: "ai unavailable" });
+    if (reply.error) {
+      console.error("Anthropic API error", reply.error, reply.detail);
+      return res.status(reply.error === 429 ? 429 : 502).json({ error: "ai unavailable" });
     }
-    const data = await r.json();
-    const full = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-    return res.status(200).json(parse(full));
+    // Still cut off after a retry: never show half a sentence; the safe message instead.
+    if (!reply.ok && reply.stopReason === "max_tokens") return res.status(200).json(parse(""));
+    return res.status(200).json(parse(reply.text));
   } catch (e) {
     console.error(e);
     return res.status(502).json({ error: "ai unavailable" });
