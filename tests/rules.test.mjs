@@ -3,6 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { rules } from "../api/chat.js";
+import { LIGHTS } from "../app/lights.js";
 
 test("steps on screen are only mentioned when steps are showing", () => {
   for (const level of ["info", "unsure", "soon"]) {
@@ -31,4 +32,15 @@ test("tire replies name the door sticker; a steady check engine light is Check s
   const r = rules(null, null, null);
   assert.match(r, /Every reply about tire pressure names where their number is: the sticker inside the driver's door/);
   assert.match(r, /steady check engine light while the car drives normally: that's soon/);
+});
+
+test("verified light facts never forbid using controls", () => {
+  for (const l of LIGHTS) assert.doesNotMatch(l.facts, /never suggest trying controls|don'?t (try|touch|use) (any |the )?controls/i, l.id);
+  assert.match(LIGHTS.find(l => l.id === "high_beam").facts, /pull over when it's safe and check the headlights section/);
+});
+
+test("where the roadside number is goes in once, not in every reply", () => {
+  const r = rules(null, null, null);
+  assert.match(r, /Only the first time it comes up in a chat/);
+  assert.doesNotMatch(r, /always say it the same way/);
 });
