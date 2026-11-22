@@ -51,7 +51,7 @@ const check = (ok, what) => { console.log(`${ok ? "pass" : "FAIL"}  ${what}`); i
     await typeAndSend(page, "It was the parking brake, the light's off now"); await waitReply(page);
     check(/fyi/i.test(await chipText(page)), "brake light: lowered to FYI after the driver reports it was the parking brake");
     check(!(await page.$(".banner")), "brake light: banner removed once resolved");
-    check(/Now: FYI/.test(await page.textContent(".change")), "brake light: a note says why the label changed");
+    check(/Now: FYI\. Parking brake was on\./.test(await page.textContent(".change")), "brake light: a note says why the label changed");
     await page.screenshot({ path: path.join(SHOTS, "2-brake-resolved.png") });
     await ctx.close(); }
 
@@ -61,6 +61,10 @@ const check = (ok, what) => { console.log(`${ok ? "pass" : "FAIL"}  ${what}`); i
     await page.waitForSelector(".msg.think");
     check(!!(await page.$(".banner .sos")), "gas smell: 911 line shows right away, before the bear replies");
     check(/911/.test(await page.textContent(".banner .sos")), "gas smell: the line says call 911");
+    const inView = () => page.$eval(".banner .sos", el => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; });
+    check(await inView(), "gas smell: the 911 line is on screen while the bear is thinking");
+    await waitReply(page);
+    check(await inView(), "gas smell: the 911 line is still on screen after the bear replies");
     await page.screenshot({ path: path.join(SHOTS, "3-gas-911.png") });
     await ctx.close(); }
 

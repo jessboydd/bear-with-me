@@ -445,7 +445,11 @@ function render() {
     store.set("bearCode", c); st.needCode = false; st.error = "";
     resend();
   };
-  if (st.screen === "chat") window.scrollTo(0, document.body.scrollHeight);
+  // When urgency has just gone up, show the steps; otherwise follow the newest message.
+  if (st.screen === "chat") {
+    const steps = st.jump && document.getElementById("steps");
+    if (steps) steps.scrollIntoView({ block: "start" }); else window.scrollTo(0, document.body.scrollHeight);
+  }
 }
 
 const manualFile = document.getElementById("manualFile");
@@ -490,6 +494,7 @@ function startLight(l) {
   const stop = l.level === "stop";
   st.light = l; st.topic = l.name; st.level = l.level;
   st.floor = RANK[l.level] >= RANK.check ? l.level : null;
+  st.jump = false;
   const first = stop
     ? "Follow the steps at the top first. Once you're stopped somewhere safe, tell me what's happening and I'll help with what comes next."
     : l.first;
@@ -510,7 +515,8 @@ function applyMeta({ urgency, topic, suggestions, lower, light }, driverText) {
     if (RANK[st.light.level] >= RANK.check && RANK[st.light.level] > (RANK[st.floor] ?? -1)) st.floor = st.light.level;
   }
   const r = nextLevel({ current: st.level, floor: st.floor, ai: urgency, lower, driverText });
-  if (r.lowered) st.turns.push({ role: "note", content: `Now: ${LEVEL[r.level]}. ${r.lowered.replace(/\.?$/, ".")}` });
+  if (r.lowered) { const why = r.lowered.replace(/\.?$/, "."); st.turns.push({ role: "note", content: `Now: ${LEVEL[r.level]}. ${why[0].toUpperCase()}${why.slice(1)}` }); }
+  if (RANK[r.level] >= RANK.check && RANK[r.level] > RANK[st.level]) st.jump = true;
   if (!r.floor) st.emergency = null;
   st.level = r.level; st.floor = r.floor;
   st.quick = (suggestions || []).slice(0, 3);
@@ -524,7 +530,9 @@ async function send(text) {
   if (!content) return;
   st.turns.push({ role: "user", content, display: text, photoUrl: pic?.url });
   const hit = checkMessage(text);
+  st.jump = false;
   if (hit) {
+    st.jump = st.level !== "stop" || (hit.tier === "911" && !st.emergency);
     st.floor = "stop"; st.level = "stop";
     if (hit.tier === "911") st.emergency = hit.kind;
   }
