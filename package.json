@@ -7,6 +7,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "node dev.js"
+    "dev": "node dev.js",
+    "test": "node --test tests/safety.test.mjs",
+    "test:scenarios:dry": "node tools/scenario-test.mjs --dry-run"
   }
 }

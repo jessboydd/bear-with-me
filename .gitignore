@@ -1,0 +1,5 @@
+# Scenario test output and private test files
+tests/results/
+tests/fixtures/*
+!tests/fixtures/README.md
+.env*

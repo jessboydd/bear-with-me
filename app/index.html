@@ -64,6 +64,9 @@ details.lightsbox[open] summary span:last-child{transform:rotate(180deg)}
 .chip.soon{background:var(--soon);color:var(--ink)}
 .chip.info{background:var(--info);color:var(--white)}
 .chip.unsure{background:var(--tint);color:var(--ink)}
+.chip.check{background:var(--orange);color:var(--ink)}
+.chipbtn{display:inline-flex;align-items:center;gap:8px;border:none;background:none;padding:0;cursor:pointer;min-height:44px;font:inherit;color:var(--link);font-weight:700}
+.banner{scroll-margin-top:96px}
 .describe{display:flex;gap:8px}
 .describe input,.composer input[type=text]{flex:1;min-width:0;height:52px;border-radius:999px;border:2px solid var(--ink);padding:0 16px;background:var(--white)}
 .head{position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);z-index:2;padding-block:8px;display:flex;flex-direction:column;gap:10px;margin-top:-8px}
@@ -75,6 +78,14 @@ details.lightsbox[open] summary span:last-child{transform:rotate(180deg)}
 .banner .bt svg{width:30px;height:30px;flex:none}
 .banner ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px;font-size:16px;line-height:22px}
 .banner p{font-size:14px;line-height:20px}
+.banner .sub{font-size:16px;line-height:22px;font-weight:700}
+.banner .first{font-size:16px;line-height:22px;background:rgba(255,255,255,.14);border-radius:12px;padding:8px 10px}
+.banner .sos{font-size:16px;line-height:22px;font-weight:700;background:var(--white);color:var(--stop);border-radius:12px;padding:8px 10px}
+.banner.check{background:#FFE7DC;color:var(--ink);border:3px solid var(--orange)}
+.banner.check .callbtn{background:var(--white);color:var(--ink);border:2px solid var(--ink)}
+.unsure-card{background:var(--white);border:2px dashed var(--line);border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:15px;line-height:21px}
+.unsure-card .btn svg{transform:rotate(-90deg)}
+.change{align-self:center;background:var(--tint);border-radius:999px;padding:6px 14px;font-size:14px;line-height:19px;font-weight:600;text-align:center}
 .chat{display:flex;flex-direction:column;gap:10px}
 .msg{max-width:88%;padding:12px 14px;font-size:16px;line-height:23px;white-space:pre-wrap;overflow-wrap:anywhere}
 .msg.bot{align-self:flex-start;background:var(--white);border-radius:20px 20px 20px 6px}
